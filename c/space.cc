@@ -32,6 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define PL_ARITY_AS_SIZE
 #include "globals.h"
 #include "Shapes.h"
 #include "Index.h"
