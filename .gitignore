@@ -1,0 +1,11 @@
+Makefile
+autom4te.cache
+buildenv.sh
+*.o
+config.status
+configure
+lib
+*~
+config.h
+config.log
+config.h.in
