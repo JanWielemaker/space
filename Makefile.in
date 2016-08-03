@@ -9,13 +9,14 @@ LIBS=	@LIBS@
 LD=@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
+CFLAGS+=-I.
 
 all:	$(SOBJ)
 
 
 $(SOBJ): $(OBJ)
 	mkdir -p $(PACKSODIR)
-	$(LD) $(ARCH) $(LDSOFLAGS) -o $@ $< $(OBJ) $(LIBS) $(SWISOLIB)
+	$(LD) $(ARCH) $(LDSOFLAGS) -o $@ $(OBJ) $(LIBS) $(SWISOLIB)
 
 .cc.o:
 	$(CC) $(ARCH) $(CFLAGS) -c -o $@ $<
