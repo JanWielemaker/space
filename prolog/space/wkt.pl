@@ -44,7 +44,7 @@
 wkt_shape(WKT,Shape) :-
     (   var(WKT)
     ->  phrase(geometry_tagged_text(Shape), WKTlist),
-        concat_atom(WKTlist, WKT)
+        atomic_list_concat(WKTlist, WKT)
     ;   tokenize_atom(WKT, WKTlist),
         phrase(geometry_tagged_text(Shape), WKTlist)
     ).
@@ -121,8 +121,8 @@ point(xy_point(X,Y)) -->
     {nonvar(X)}, c(X), blank_plus, c(Y), ! ;
     c(X), blank_star, c(Y).
 c(X) --> {var(X)}, [ X ].
-c(X) --> {nonvar(X), atom(Xa), atom_number(Xa,X)}, [ Xa ].
-c(X) --> {nonvar(X), number(X)}, [ X ].
+c(X) --> {atom(X), atom_number(X,Xn)}, [ Xn ].
+c(X) --> {number(X)}, [ X ].
 
 blank_plus --> [' '], blank_star, !.
 blank_star --> [], !.
