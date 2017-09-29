@@ -22,6 +22,8 @@ $(SOBJ): $(OBJ)
 	$(CC) $(ARCH) $(CFLAGS) -c -o $@ $<
 
 check::
+	swipl -g test_space -t halt test/test_space.pl
+
 install::
 clean:
 	rm -f c/*.o *~
