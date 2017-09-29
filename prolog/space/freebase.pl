@@ -33,9 +33,9 @@
 */
 
 :- module(freebase,
-	  [  freebase_candidate/2,
-	     freebase_candidate/3
-	  ]).
+          [  freebase_candidate/2,
+             freebase_candidate/3
+          ]).
 
 :- use_module(library(semweb/rdf_db)).
 :- rdf_register_ns(fb, 'http://rdf.freebase.com/ns/').
@@ -43,32 +43,32 @@
 :- rdf_meta(freebase_candidate(r,?)).
 :- rdf_meta(freebase_candidate(r,?,?)).
 
-%%	freebase_candidate(?URI,?Point) is nondet.
+%!  freebase_candidate(?URI,?Point) is nondet.
 %
-%	Finds URI-Shape pairs of RDF resource that are place-tagged with
-%	Freebase's location.location.geoposition notation that capture
-%	WGS84 latitude/longitude positions.
+%   Finds URI-Shape pairs of RDF resource that are place-tagged with
+%   Freebase's location.location.geoposition notation that capture
+%   WGS84 latitude/longitude positions.
 
 freebase_candidate(URI,point(Lat,Long)) :-
-	rdf(URI,fb:'location.location.geolocation',BN),
-	rdf(BN,fb:'location.geocode.latitude',literal(type(_,LatAtom))),
-	rdf(BN,fb:'location.geocode.longitude',literal(type(_,LongAtom))),
-	atom_number(LatAtom,Lat),
-	atom_number(LongAtom,Long).
+    rdf(URI,fb:'location.location.geolocation',BN),
+    rdf(BN,fb:'location.geocode.latitude',literal(type(_,LatAtom))),
+    rdf(BN,fb:'location.geocode.longitude',literal(type(_,LongAtom))),
+    atom_number(LatAtom,Lat),
+    atom_number(LongAtom,Long).
 
-%%	freebase_candidate(?URI,?Point,?Source) is nondet.
+%!  freebase_candidate(?URI,?Point,?Source) is nondet.
 %
-%	Finds URI-Shape pairs of RDF resource that are place-tagged with
-%	Freebase's location.location.geoposition notation that capture
-%	WGS84 latitude/longitude positions.
-%	From RDF that was loaded from a certain Source.
+%   Finds URI-Shape pairs of RDF resource that are place-tagged with
+%   Freebase's location.location.geoposition notation that capture
+%   WGS84 latitude/longitude positions.
+%   From RDF that was loaded from a certain Source.
 
 freebase_candidate(URI,point(Lat,Long),Source) :-
-	rdf(URI,fb:'location.location.geolocation',BN,Source),
-	rdf(BN,fb:'location.geocode.latitude',literal(type(_,LatAtom))),
-	rdf(BN,fb:'location.geocode.longitude',literal(type(_,LongAtom))),
-	atom_number(LatAtom,Lat),
-	atom_number(LongAtom,Long).
+    rdf(URI,fb:'location.location.geolocation',BN,Source),
+    rdf(BN,fb:'location.geocode.latitude',literal(type(_,LatAtom))),
+    rdf(BN,fb:'location.geocode.longitude',literal(type(_,LongAtom))),
+    atom_number(LatAtom,Lat),
+    atom_number(LongAtom,Long).
 
 
 

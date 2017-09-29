@@ -53,25 +53,25 @@
 
 % find Features in order of proximity to the point Lat Long
 nearest_features(point(Lat,Long), Name) :-
-        space_nearest(point(Lat,Long), Nearest,'demo_index'),
-        rdf(Nearest, rdf:type, geo:'Feature'), % atoms starting with capitals have to be quoted.
-        rdf(Nearest, geo:name, literal(Name)).
+    space_nearest(point(Lat,Long), Nearest,'demo_index'),
+    rdf(Nearest, rdf:type, geo:'Feature'), % atoms starting with capitals have to be quoted.
+    rdf(Nearest, geo:name, literal(Name)).
 
 % find Features contained in the box defined by the two points
 contained_features(box(point(NWLat,NWLong),point(SELat,SELong)), Name) :-
-        space_contains(box(point(NWLat,NWLong),point(SELat,SELong)), Contained, 'demo_index'),
-        rdf(Contained, rdf:type, geo:'Feature'),
-        rdf(Contained, geo:name, literal(Name)).
+    space_contains(box(point(NWLat,NWLong),point(SELat,SELong)), Contained, 'demo_index'),
+    rdf(Contained, rdf:type, geo:'Feature'),
+    rdf(Contained, geo:name, literal(Name)).
 
 % find Features in order of proximity, but restrict them to those with featureCode harbor
 % also, fetch and show their coordinates
 nearest_harbors(point(Lat,Long), Name, point(HarborLat,HarborLong)) :-
-        space_nearest(point(Lat,Long), Nearest,'demo_index'),
-        rdf(Nearest, rdf:type, geo:'Feature'),
-        rdf(Nearest, geo:featureCode, geo:'H.HBR'),
-        rdf(Nearest, geo:name, literal(Name)),
-        rdf(Nearest, wgs84:lat, literal(HarborLat)),
-        rdf(Nearest, wgs84:long, literal(HarborLong)).
+    space_nearest(point(Lat,Long), Nearest,'demo_index'),
+    rdf(Nearest, rdf:type, geo:'Feature'),
+    rdf(Nearest, geo:featureCode, geo:'H.HBR'),
+    rdf(Nearest, geo:name, literal(Name)),
+    rdf(Nearest, wgs84:lat, literal(HarborLat)),
+    rdf(Nearest, wgs84:long, literal(HarborLong)).
 
 
 

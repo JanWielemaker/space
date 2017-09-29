@@ -33,52 +33,52 @@
 */
 
 :- module(wkt,
-	  [ wkt_shape/2
-	  ]).
+          [ wkt_shape/2
+          ]).
 
-%%	wkt_shape(?WKT,?Shape) is semidet.
+%!  wkt_shape(?WKT,?Shape) is semidet.
 %
-%	Converts between the WKT serialization of a Shape and
-%	its native Prolog term representation.
+%   Converts between the WKT serialization of a Shape and
+%   its native Prolog term representation.
 
 wkt_shape(WKT,Shape) :-
-	(   var(WKT)
-	->  phrase(geometry_tagged_text(Shape), WKTlist),
-	    concat_atom(WKTlist, WKT)
-	;   tokenize_atom(WKT, WKTlist),
-	    phrase(geometry_tagged_text(Shape), WKTlist)
-	).
+    (   var(WKT)
+    ->  phrase(geometry_tagged_text(Shape), WKTlist),
+        concat_atom(WKTlist, WKT)
+    ;   tokenize_atom(WKT, WKTlist),
+        phrase(geometry_tagged_text(Shape), WKTlist)
+    ).
 
 geometry_tagged_text(T) --> point_tagged_text(T) ;
-	linestring_tagged_text(T) ;
-	polygon_tagged_text(T) ;
-	multipoint_tagged_text(T) ;
-	multilinestring_tagged_text(T) ;
-	multipolygon_tagged_text(T) ;
-	geometrycollection_tagged_text(T).
+    linestring_tagged_text(T) ;
+    polygon_tagged_text(T) ;
+    multipoint_tagged_text(T) ;
+    multilinestring_tagged_text(T) ;
+    multipolygon_tagged_text(T) ;
+    geometrycollection_tagged_text(T).
 
 point_tagged_text(T) -->
-	['POINT'], point_text(T).
+    ['POINT'], point_text(T).
 linestring_tagged_text(linestring(T)) -->
-	['LINESTRING'], blank_star, linestring_text(T).
+    ['LINESTRING'], blank_star, linestring_text(T).
 polygon_tagged_text(polygon(T)) -->
-	['POLYGON'], blank_star, polygon_text(T).
+    ['POLYGON'], blank_star, polygon_text(T).
 multipoint_tagged_text(multipoint(T)) -->
-	['MULTIPOINT'], blank_star, multipoint_text(T).
+    ['MULTIPOINT'], blank_star, multipoint_text(T).
 multilinestring_tagged_text(multilinestring(T)) -->
-	['MULTILINESTRING'], blank_star, multilinestring_text(T).
+    ['MULTILINESTRING'], blank_star, multilinestring_text(T).
 multipolygon_tagged_text(multipolygon(T)) -->
-	['MULTIPOLYGON'], blank_star, multipolygon_text(T).
+    ['MULTIPOLYGON'], blank_star, multipolygon_text(T).
 geometrycollection_tagged_text(geometrycollection(T)) -->
-	['GEOMETRYCOLLECTION'], blank_star, geometrycollection_text(T).
+    ['GEOMETRYCOLLECTION'], blank_star, geometrycollection_text(T).
 
 point_text(point(empty)) --> ['EMPTY'], !.
 point_text(point(X,Y,Z,M)) -->
-	{nonvar(X)}, blank_plus, ['ZM'], blank_plus, ['('], blank_star, point(zm_point(X,Y,Z,M)), blank_star, [')'], ! ;
-	blank_star, ['ZM'], blank_star, ['('], blank_star, point(zm_point(X,Y,Z,M)), blank_star, [')'].
+    {nonvar(X)}, blank_plus, ['ZM'], blank_plus, ['('], blank_star, point(zm_point(X,Y,Z,M)), blank_star, [')'], ! ;
+    blank_star, ['ZM'], blank_star, ['('], blank_star, point(zm_point(X,Y,Z,M)), blank_star, [')'].
 point_text(point(X,Y,Z)) -->
-	{nonvar(X)}, blank_plus, ['Z'], blank_plus, ['('], blank_star, point(z_point(X,Y,Z)), blank_star, [')'], ! ;
-	blank_star, ['Z'], blank_star, ['('], blank_star, point(z_point(X,Y,Z)), blank_star, [')'].
+    {nonvar(X)}, blank_plus, ['Z'], blank_plus, ['('], blank_star, point(z_point(X,Y,Z)), blank_star, [')'], ! ;
+    blank_star, ['Z'], blank_star, ['('], blank_star, point(z_point(X,Y,Z)), blank_star, [')'].
 point_text(point(X,Y)) --> blank_star, ['('], blank_star, point(xy_point(X,Y)), blank_star, [')'].
 linestring_text(empty) --> ['EMPTY'], !.
 linestring_text(T) --> ['('], blank_star, points(T), blank_star, [')'].
@@ -112,14 +112,14 @@ geometry_tagged_texts_star(T) --> [','], blank_star, geometry_tagged_texts(T).
 geometry_tagged_texts_star([]) --> [], !.
 
 point(zm_point(X,Y,Z,M)) -->
-	{nonvar(X)}, c(X), blank_plus, c(Y), blank_plus, c(Z), blank_plus, c(M), ! ;
-	c(X), blank_star, c(Y), blank_star, c(Z), blank_star, c(M).
+    {nonvar(X)}, c(X), blank_plus, c(Y), blank_plus, c(Z), blank_plus, c(M), ! ;
+    c(X), blank_star, c(Y), blank_star, c(Z), blank_star, c(M).
 point(z_point(X,Y,Z)) -->
-	{nonvar(X)}, c(X), blank_plus, c(Y), blank_plus, c(Z), ! ;
-	c(X), blank_star, c(Y), blank_star, c(Z).
+    {nonvar(X)}, c(X), blank_plus, c(Y), blank_plus, c(Z), ! ;
+    c(X), blank_star, c(Y), blank_star, c(Z).
 point(xy_point(X,Y)) -->
-	{nonvar(X)}, c(X), blank_plus, c(Y), ! ;
-	c(X), blank_star, c(Y).
+    {nonvar(X)}, c(X), blank_plus, c(Y), ! ;
+    c(X), blank_star, c(Y).
 c(X) --> {var(X)}, [ X ].
 c(X) --> {nonvar(X), atom(Xa), atom_number(Xa,X)}, [ Xa ].
 c(X) --> {nonvar(X), number(X)}, [ X ].
