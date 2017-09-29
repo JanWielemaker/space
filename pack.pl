@@ -1,9 +1,9 @@
 name(space).
-version('0.1').
+version('0.2').
 title('Space package').
-keywords(['geo']).
+keywords(['geo', 'spatial']).
 author( 'Willem van Hage', 'w.vanhage@esciencecenter.nl' ).
 packager( 'Jan Wielemaker', 'J.Wielemaker@vu.nl' ).
 maintainer( 'Jan Wielemaker', 'J.Wielemaker@vu.nl' ).
-home( 'http://www.swi-prolog.org' ).
-download( 'http://www.swi-prolog.org/download/space-*.tgz' ).
+home( 'https://github.com/JanWielemaker/space.git' ).
+download( 'https://github.com/JanWielemaker/space/archive/V*.zip' ).
