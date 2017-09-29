@@ -57,7 +57,7 @@ nearest_features(point(Lat,Long), Name) :-
         rdf(Nearest, rdf:type, geo:'Feature'), % atoms starting with capitals have to be quoted.
         rdf(Nearest, geo:name, literal(Name)).
 
-% find Features contained in the box defined by the two points        
+% find Features contained in the box defined by the two points
 contained_features(box(point(NWLat,NWLong),point(SELat,SELong)), Name) :-
         space_contains(box(point(NWLat,NWLong),point(SELat,SELong)), Contained, 'demo_index'),
         rdf(Contained, rdf:type, geo:'Feature'),
