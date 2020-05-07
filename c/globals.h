@@ -60,6 +60,6 @@ static PlAtom ATOM_haversine("haversine");
 static PlAtom ATOM_memory("memory");
 static PlAtom ATOM_disk("disk");
     
-extern geos::geom::GeometryFactory *global_factory;
+extern geos::geom::GeometryFactory::Ptr global_factory;
 
 #endif // __GLOBALS_H

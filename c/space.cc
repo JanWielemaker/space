@@ -57,7 +57,6 @@
 #define INIT_LOCK(lock)			init_lock(lock)
 
 
-extern geos::geom::GeometryFactory* global_factory;
 map<atom_t,Index*> index_map;
 rwlock index_map_lock;
 
@@ -536,7 +535,7 @@ create_square_linearring(double xoffset, double yoffset, double side) {
   cl->add(Coordinate(xoffset+side, yoffset));
   cl->add(Coordinate(xoffset, yoffset));
   PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
-  GeometryFactory *global_factory = new GeometryFactory(pm, -1);
+  GeometryFactory::Ptr global_factory = GeometryFactory::create(pm, -1);
   LinearRing *lr = global_factory->createLinearRing(cl);
   return lr;
 }
@@ -549,7 +548,7 @@ create_square_polygon(double xoffset, double yoffset, double side) {
   vector<Geometry *> *holes = new vector<Geometry *>;
   holes->push_back((Geometry*)inner);
   PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
-  GeometryFactory *global_factory = new GeometryFactory(pm, -1);
+  GeometryFactory::Ptr global_factory = GeometryFactory::create(pm, -1);
   geos::geom::Polygon *poly = global_factory->createPolygon(outer, holes);
   return poly;
 }

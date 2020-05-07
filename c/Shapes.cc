@@ -56,14 +56,14 @@ using namespace geos::geom;
 using namespace SpatialIndex;
 
 void init_geos() {
-  if (global_factory != NULL) return;
+  if (global_factory != nullptr) return;
 
   // define a precision model that just uses double precision floating points.
   PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
 
   // Initialize global factory with defined PrecisionModel
   // and a SRID of -1 (undefined).
-  global_factory = new GeometryFactory(pm, -1);
+  global_factory = GeometryFactory::create(pm, -1);
 
   // We do not need PrecisionMode object anymore, it has
   // been copied to global_factory private storage
@@ -72,9 +72,9 @@ void init_geos() {
 }
 
 void cleanup_geos() {
-  if (global_factory != NULL) {
-    delete global_factory;
-    global_factory = NULL;
+  if (global_factory != nullptr) {
+    // Smart pointer - 
+    global_factory = nullptr;
   }
 }
 

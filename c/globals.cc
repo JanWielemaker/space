@@ -1,4 +1,3 @@
 #include "globals.h"
 
-geos::geom::GeometryFactory* global_factory = NULL;
-
+geos::geom::GeometryFactory::Ptr global_factory = nullptr;
