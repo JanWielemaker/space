@@ -74,7 +74,7 @@ namespace SpatialIndex
     uint32_t getByteArraySize();
     void loadFromByteArray(const byte* data);
     void storeToByteArray(byte** data, uint32_t& length);
-    
+
     uint32_t m_dimension;
 
     geos::geom::Geometry *g; // pointer to the corresponding geos::geom::Geometry
@@ -101,6 +101,15 @@ namespace SpatialIndex
     // IObject interface
     //
     GEOSPoint* clone();
+
+    //
+    // ISerializable interface
+    //
+    void  loadFromByteArray(const uint8_t* data)
+    { throw "GEOSPoint::loadFromByteArray(...) Not Implemented"; }
+
+    void storeToByteArray(uint8_t** data, uint32_t& length)
+    { throw "GEOSPoint::storeToByteArray(...) Not Implemented"; }
 
     //
     // IShape interface
@@ -159,6 +168,16 @@ namespace SpatialIndex
     GEOSLineString* clone();
 
     //
+    // ISerializable interface
+    //
+    void  loadFromByteArray(const uint8_t* data)
+    { throw "GEOSLineString::loadFromByteArray(...) Not Implemented"; }
+
+    void storeToByteArray(uint8_t** data, uint32_t& length)
+    { throw "GEOSLineString::storeToByteArray(...) Not Implemented"; }
+
+
+    //
     // IShape interface
     //
     bool intersectsShape(const GEOSShape& in) const;
@@ -195,7 +214,7 @@ namespace SpatialIndex
     void makeDimension(uint32_t dimension);
 
     uint32_t m_dimension;
-    
+
   private:
     void initialize(const double* verts, uint32_t nverts, uint32_t dimension);
 
@@ -229,6 +248,16 @@ namespace SpatialIndex
     // IObject interface
     //
     GEOSPolygon* clone();
+
+    //
+    // ISerializable interface
+    //
+    void  loadFromByteArray(const uint8_t* data)
+    { throw "GEOSPolygon::loadFromByteArray(...) Not Implemented"; }
+
+    void storeToByteArray(uint8_t** data, uint32_t& length)
+    { throw "GEOSPolygon::storeToByteArray(...) Not Implemented"; }
+
 
     //
     // IShape interface
@@ -267,7 +296,7 @@ namespace SpatialIndex
     void makeDimension(uint32_t dimension);
 
     uint32_t m_dimension;
-    
+
   private:
     void initialize(const double* verts, uint32_t nverts, uint32_t dimension);
 
@@ -276,7 +305,14 @@ namespace SpatialIndex
     friend std::ostream& operator<<(std::ostream& os, const GEOSPolygon& r);
   }; // GEOSPolygon
 
+
+// Avoid warning about operator<< not declared in SpatialIndex namespace
+std::ostream& operator<<(std::ostream& os, const GEOSPoint& pt);
+std::ostream& operator<<(std::ostream& os, const GEOSLineString& r);
+std::ostream& operator<<(std::ostream& os, const GEOSPolygon& r);
+
 }
+
 
 geos::geom::Geometry* regionToBox(const Region& r);
 

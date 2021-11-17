@@ -528,7 +528,7 @@ PREDICATE(rtree_display_mbrs,1) {
 using namespace geos::geom;
 LinearRing*
 create_square_linearring(double xoffset, double yoffset, double side) {
-  CoordinateSequence *cl = new CoordinateArraySequence();
+  CoordinateArraySequence *cl = new CoordinateArraySequence();
   cl->add(Coordinate(xoffset, yoffset));
   cl->add(Coordinate(xoffset, yoffset+side));
   cl->add(Coordinate(xoffset+side, yoffset+side));
@@ -545,10 +545,13 @@ create_square_polygon(double xoffset, double yoffset, double side) {
   LinearRing *outer = create_square_linearring(xoffset,yoffset,side);
   LinearRing *inner = create_square_linearring(xoffset+(side/3),
                                                yoffset+(side/3),(side/3));
-  vector<Geometry *> *holes = new vector<Geometry *>;
-  holes->push_back((Geometry*)inner);
-  PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING);
-  GeometryFactory::Ptr global_factory = GeometryFactory::create(pm, -1);
+
+  vector<LinearRing *> *holes  = new vector<LinearRing *>;
+  holes->push_back(inner);
+  /* vector<Geometry *> *holes = new vector<Geometry *>; */
+  /* holes->push_back((Geometry*)inner); */
+  /* PrecisionModel *pm = new PrecisionModel(geos::geom::PrecisionModel::FLOATING); */
+  /* GeometryFactory::Ptr global_factory = GeometryFactory::create(pm, -1); */
   geos::geom::Polygon *poly = global_factory->createPolygon(outer, holes);
   return poly;
 }
@@ -622,14 +625,14 @@ PREDICATE(geos_test,0) {
 
   cout << "before store" << endl;
 
-  byte* buffer;
+  uint8_t* buffer;
   uint32_t length;
   p2->storeToByteArray(&buffer,length);
 
   cout << "after store, before load" << endl;
 
   GEOSPoint *p4 = new GEOSPoint();
-  p4->loadFromByteArray((const byte*)buffer);
+  p4->loadFromByteArray(buffer);
 
   cout << "after load, testing copy" << endl;
   cout << "distance " << p4 << " to " << gpoly << " = " << p4->getMinimumDistance(*gpoly) << endl;
@@ -640,7 +643,7 @@ PREDICATE(geos_test,0) {
   cout << "after store, before load" << endl;
 
   GEOSPolygon *gpoly2 = new GEOSPolygon();
-  gpoly2->loadFromByteArray((const byte*)buffer);
+  gpoly2->loadFromByteArray(buffer);
 
   cout << "after load, testing copy" << endl;
   cout << "distance " << p4 << " to " << gpoly2 << " = " << p4->getMinimumDistance(*gpoly2) << endl;

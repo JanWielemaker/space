@@ -39,6 +39,8 @@
 
 #include "Shapes.h"
 
+#define ISNAN(x) isnan(x)
+
 template< typename T >inline
 const std::type_info& get_type( T& object )
 {
@@ -104,7 +106,7 @@ GEOSShape::loadFromByteArray(const byte* data) {
   s.write((const char*)(&data[sizeof(uint32_t)]),length-sizeof(uint32_t));
   s.seekg(0);
   geos::io::WKBReader wkbReader(*global_factory);
-  this->g = wkbReader.read(s);
+  this->g = wkbReader.read(s).release();
   const geos::geom::Coordinate *c = this->g->getCoordinate();
   uint32_t dim;
   if (ISNAN(c->y)) dim = 1;
@@ -148,13 +150,13 @@ regionToBox(const Region& r) {
       box = global_factory->createPoint(Coordinate(r.m_pLow[0],r.m_pHigh[1]));
     } else if (r.m_pLow[0] == r.m_pHigh[0] ||
                r.m_pLow[1] == r.m_pHigh[1]) {
-      geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
       cl->add(Coordinate(r.m_pLow[0],r.m_pLow[1]));
       cl->add(Coordinate(r.m_pHigh[0],r.m_pHigh[1]));
       box = global_factory->createLineString(cl);
       box->normalize();
     } else {
-      geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
       cl->add(Coordinate(r.m_pLow[0], r.m_pLow[1]));
       cl->add(Coordinate(r.m_pLow[0], r.m_pHigh[1]));
       cl->add(Coordinate(r.m_pHigh[0], r.m_pHigh[1]));
@@ -165,7 +167,7 @@ regionToBox(const Region& r) {
       box->normalize();
     }
   } else if (r.m_dimension == 1) {
-    geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+    geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
     cl->add(Coordinate(r.m_pLow[0]));
     cl->add(Coordinate(r.m_pHigh[0]));
     box = global_factory->createLineString(cl);
@@ -189,7 +191,7 @@ GEOSPoint::GEOSPoint() {
 #ifdef DEBUGGING
   cout << "entering GEOSPoint::GEOSPoint() " << endl;
 #endif
-  this->g = global_factory->createPoint();
+  this->g = global_factory->createPoint().release();
 }
 
 GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) {
@@ -582,14 +584,14 @@ GEOSLineString::GEOSLineString(const GEOSLineString& ls) {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const GEOSLineString& ls) " << endl;
 #endif
-  g = ls.g->clone();
+  g = ls.g->clone().release();
 }
 
 GEOSLineString::GEOSLineString(const geos::geom::LineString& ls) {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::GEOSLineString(const geos::geom::LineString& ls) " << endl;
 #endif
-  g = ls.clone();
+  g = ls.clone().release();
   const geos::geom::Coordinate *c = g->getCoordinate();
   uint32_t dim;
   if (ISNAN(c->y)) dim = 1;
@@ -610,7 +612,7 @@ GEOSLineString::clone() {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::clone() " << endl;
 #endif
-  LineString *ls = dynamic_cast<LineString*>(this->g->clone());
+  LineString *ls = dynamic_cast<LineString*>(this->g->clone().release());
   GEOSLineString *p = new GEOSLineString(*ls);
   delete ls;
   return p;
@@ -801,7 +803,7 @@ GEOSLineString::getCenter(SpatialIndex::Point& out) const {
 #ifdef DEBUGGING
   cout << "entering GEOSLineString::getCenter(SpatialIndex::Point& out) const " << endl;
 #endif
-  geos::geom::Point *p = this->g->getCentroid();
+  geos::geom::Point *p = this->g->getCentroid().release();
   GEOSPoint *gp = new GEOSPoint(*(p->getCoordinate()));
   out = *(gp->toPoint());
   delete p;
@@ -886,7 +888,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
       const Region& pr = dynamic_cast<const Region&>(in);
       geos::geom::Geometry *box;
       if (pr.m_dimension == 2) {
-        geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+        geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pLow[1]));
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pHigh[1]));
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0], pr.m_pHigh[1]));
@@ -896,7 +898,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
         box = global_factory->createPolygon(lr, NULL);
         box->normalize();
       } else if (pr.m_dimension == 1) {
-        geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+        geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
         cl->add(geos::geom::Coordinate(pr.m_pLow[0]));
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0]));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
@@ -1051,7 +1053,7 @@ GEOSLineString::operator==(const GEOSLineString&) const {
 std::ostream& SpatialIndex::operator<<(std::ostream& os, const GEOSLineString& r)
 {
   uint32_t i;
-  geos::geom::CoordinateSequence *c = r.g->getCoordinates();
+  geos::geom::CoordinateSequence *c = r.g->getCoordinates().release();
   for (i = 0; i < c->getSize(); i++)
     {
       os << c->getAt(i).x << " " << c->getAt(i).y << " | ";
@@ -1090,14 +1092,14 @@ GEOSPolygon::GEOSPolygon(const GEOSPolygon& poly) {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const GEOSPolygon& poly) " << endl;
 #endif
-  g = poly.g->clone();
+  g = poly.g->clone().release();
 }
 
 GEOSPolygon::GEOSPolygon(const geos::geom::Polygon& poly) {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::GEOSPolygon(const geos::geom::Polygon& poly) " << endl;
 #endif
-  g = poly.clone();
+  g = poly.clone().release();
   const geos::geom::Coordinate *c = g->getCoordinate();
   uint32_t dim;
   if (ISNAN(c->y)) dim = 1;
@@ -1118,7 +1120,7 @@ GEOSPolygon::clone() {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::clone() " << endl;
 #endif
-  Polygon *poly = dynamic_cast<Polygon*>(this->g->clone());
+  Polygon *poly = dynamic_cast<Polygon*>(this->g->clone().release());
   GEOSPolygon *p = new GEOSPolygon(*poly);
   delete poly;
   return p;
@@ -1309,7 +1311,7 @@ GEOSPolygon::getCenter(SpatialIndex::Point& out) const {
 #ifdef DEBUGGING
   cout << "entering GEOSPolygon::getCenter(SpatialIndex::Point& out) const " << endl;
 #endif
-  geos::geom::Point *p = this->g->getCentroid();
+  geos::geom::Point *p = this->g->getCentroid().release();
   GEOSPoint *gp = new GEOSPoint(*(p->getCoordinate()));
   out = *(gp->toPoint());
   delete p;
@@ -1394,7 +1396,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
       const Region& pr = dynamic_cast<const Region&>(in);
       geos::geom::Geometry *box;
       if (pr.m_dimension == 2) {
-        geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+        geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pLow[1]));
         cl->add(geos::geom::Coordinate(pr.m_pLow[0], pr.m_pHigh[1]));
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0], pr.m_pHigh[1]));
@@ -1404,7 +1406,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
         box = global_factory->createPolygon(lr, NULL);
         box->normalize();
       } else if (pr.m_dimension == 1) {
-        geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+        geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
         cl->add(geos::geom::Coordinate(pr.m_pLow[0]));
         cl->add(geos::geom::Coordinate(pr.m_pHigh[0]));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
@@ -1559,7 +1561,7 @@ GEOSPolygon::operator==(const GEOSPolygon&) const {
 std::ostream& SpatialIndex::operator<<(std::ostream& os, const GEOSPolygon& r)
 {
   uint32_t i;
-  geos::geom::CoordinateSequence *c = r.g->getCoordinates();
+  geos::geom::CoordinateSequence *c = r.g->getCoordinates().release();
   for (i = 0; i < c->getSize(); i++)
     {
       os << c->getAt(i).x << " " << c->getAt(i).y << " | ";

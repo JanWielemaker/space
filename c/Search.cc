@@ -42,7 +42,7 @@ void PrintVisitor::visitNode(const INode& n) {
 }
 
 void PrintVisitor::visitData(const IData& d) {
-  byte* pData = 0;
+  uint8_t* pData = 0;
   uint32_t cLen = 0;
   d.getData(cLen, &pData);
   printf("visiting data at %d ",(int)d.getIdentifier());
@@ -94,7 +94,7 @@ void TraverseBreadthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry,
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
       uint32_t length;
-      byte* data;
+      uint8_t* data;
       n->getChildData(cChild,length,&data);
       Region childMBR;
       childShape->getMBR(childMBR);
@@ -133,7 +133,7 @@ void TraverseDepthFirst::getNextEntry(const IEntry& entry, id_type& nextEntry, b
       IShape* childShape;
       n->getChildShape(cChild,&childShape);
       uint32_t length;
-      byte* data;
+      uint8_t* data;
       n->getChildData(cChild,length,&data);
       Region childMBR;
       childShape->getMBR(childMBR);
@@ -223,7 +223,7 @@ void IncrementalRangeStrategy::getNextEntry(const IEntry& entry, id_type& nextEn
         }
         if (b) {
           uint32_t length;
-          byte* data;
+          uint8_t* data;
           n->getChildData(cChild,length,&data);
           // If we got an IVisitor, use it to report the result.
           if (v != NULL) {
@@ -348,7 +348,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
           if (v != NULL) {
             v->visitData(dynamic_cast<const IData&>(*(queue.top()->m_pEntry)));
           }
-          byte* data;
+          uint8_t* data;
           uint32_t length;
           (dynamic_cast<const IData&>(*(queue.top()->m_pEntry))).getData(length,&data);
           result = *(atom_t*)data;
@@ -375,7 +375,7 @@ void IncrementalNearestNeighborStrategy::getNextEntry(const IEntry& entry, id_ty
             Region childMBR;
             childShape->getMBR(childMBR);
             uint32_t length;
-            byte* data;
+            uint8_t* data;
             n->getChildData(cChild,length,&data);
             id_type childIdentifier = n->getChildIdentifier(cChild);
             RTree::Data* de = new RTree::Data(length, data, childMBR ,childIdentifier);

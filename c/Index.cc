@@ -73,7 +73,9 @@ public:
     cache0 = PL_new_term_refs(3);
     p = PL_predicate("call",3,"system");
     cached = false;
-    PL_put_term(cache0+0,goal);
+    if (!PL_put_term(cache0+0,goal)) {
+      throw PlResourceError();
+    }
     q = PL_open_query(NULL, PL_Q_NORMAL, p, cache0);
     index = i;
     index->bulkload_tmp_id_cnt = 0;
@@ -103,12 +105,12 @@ public:
 #ifdef DEBUGGING
       cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-       rv = new RTree::Data(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, r, id);
+       rv = new RTree::Data(sizeof(uri_atom.handle), reinterpret_cast<uint8_t*>(&uri_atom.handle), r, id);
     }
     WRUNLOCK(&index->lock);
     return rv;
   }
-  virtual bool hasNext() throw (Tools::NotSupportedException)
+  virtual bool hasNext()
   {
     if (cached) return true;
     if (PL_next_solution(q)) {
@@ -119,13 +121,13 @@ public:
     return false;
   }
 
-  virtual uint32_t size() throw (Tools::NotSupportedException)
+  virtual uint32_t size()
   {
     throw Tools::NotSupportedException("Operation not supported.");
     return 0;
   }
 
-  virtual void rewind() throw (Tools::NotSupportedException)
+  virtual void rewind()
   {
     cerr << "rewinding a RTreePrologStream does nothing" << endl;
   }
@@ -371,7 +373,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       cout << "first argument not a list: linestring must have one argument, a list containing a list of points" << endl;
       return NULL;
     }
-    geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+    geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
     PlTail list(shape_term[1]);
     PlTerm pt;
     while (list.next(pt)) {
@@ -405,7 +407,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       cout << "first argument not a list: polygon must have one argument, a list containing a list of points representing the shell, and an second argument, a list containing lists of points representing the holes" << endl;
       return NULL;
     }
-    geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+    geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
     PlTail linearrings(shape_term[1]);
     PlTerm ring;
     linearrings.next(ring);
@@ -430,9 +432,9 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     // assuming linear ring is already closed
     //    cl->add(cl->getAt(0));
     geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
-    vector<geos::geom::Geometry*> *holes = new vector<geos::geom::Geometry*>;
+    vector<geos::geom::LinearRing*> *holes = new vector<geos::geom::LinearRing*>;
     while (linearrings.next(ring)) {
-      geos::geom::CoordinateSequence *hcl = new geos::geom::CoordinateArraySequence();
+      geos::geom::CoordinateArraySequence *hcl = new geos::geom::CoordinateArraySequence();
       PlTail hole(ring);
       PlTerm hpt;
       while (hole.next(hpt)) {
@@ -485,7 +487,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 
     geos::geom::Polygon *box;
     if (dim == 2) {
-      geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
       cl->add(geos::geom::Coordinate(low_point[0], low_point[1]));
       cl->add(geos::geom::Coordinate(low_point[0], high_point[1]));
       cl->add(geos::geom::Coordinate(high_point[0], high_point[1]));
@@ -496,7 +498,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       box->normalize();
       delete cl;
     } else if (dim == 1) {
-      geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
+      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
       cl->add(geos::geom::Coordinate(low_point[0]));
       cl->add(geos::geom::Coordinate(high_point[0]));
       geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
@@ -544,7 +546,7 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
   }
   try {
     PlAtom uri_atom(uri);
-    tree->insertData(sizeof(uri_atom.handle), (byte*)&uri_atom.handle, *shape, id);
+    tree->insertData(sizeof(uri_atom.handle), reinterpret_cast<uint8_t*>(&uri_atom.handle), *shape, id);
   } catch (...) {
     WRUNLOCK(&lock);
     return FALSE;

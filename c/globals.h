@@ -40,6 +40,7 @@
 #endif
 
 #include <SWI-cpp.h>
+#define USE_UNSTABLE_GEOS_CPP_API 1
 #include <geos/geom/GeometryFactory.h>
 
 // Geometry
@@ -59,7 +60,7 @@ static PlAtom ATOM_pythagorean("pythagorean");
 static PlAtom ATOM_haversine("haversine");
 static PlAtom ATOM_memory("memory");
 static PlAtom ATOM_disk("disk");
-    
+
 extern geos::geom::GeometryFactory::Ptr global_factory;
 
 #endif // __GLOBALS_H
