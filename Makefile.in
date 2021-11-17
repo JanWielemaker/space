@@ -6,10 +6,11 @@
 
 SOBJ=	$(PACKSODIR)/space.$(SOEXT)
 LIBS=	@LIBS@
-LD=@CXX@
+CXX=	@CXX@
+LD=	@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
-CFLAGS+=-I.
+CFLAGS+=-I. -std=c++17
 
 all:	$(SOBJ)
 
@@ -19,7 +20,7 @@ $(SOBJ): $(OBJ)
 	$(LD) $(ARCH) $(LDSOFLAGS) -o $@ $(OBJ) $(LIBS) $(SWISOLIB)
 
 .cc.o:
-	$(CC) $(ARCH) $(CFLAGS) -c -o $@ $<
+	$(CXX) $(ARCH) $(CFLAGS) -c -o $@ $<
 
 check::
 	swipl -g test_space -t halt test/test_space.pl
