@@ -1,6 +1,7 @@
 :- use_module(library(plunit)).
 :- use_module(library(space/space)).
-:- use_module(library(semweb/rdf_db)).
+:- use_module(library(space/wkt)).
+:- use_module(library(semweb/rdf11)).
 
 :- rdf_register_ns(poseidon,'http://semanticweb.cs.vu.nl/poseidon/ns/instances/').
 
@@ -150,6 +151,44 @@ test(space_retract, [ true(Ps = [P2,P3]),
     findall(P,(space_nearest(DeepShape,P,test_index),
                rdf_global_id(poseidon:L,P),
                atom_concat(testPoint,_,L)), Ps),
+    !.
+
+test(no_assert_duplicates, [ Res = 1,
+                             cleanup(space_clear(test_index))
+                           ]) :-
+    rdf_global_id(poseidon:testPointDups1,P1),
+    space_assert(P1,point(52.43,3.071),test_index),
+    space_assert(P1,point(52.43,3.071),test_index),
+    space_assert(P1,point(52.43,3.071),test_index),
+    space_index(test_index),
+    aggregate_all(count,uri_shape(P1,_,test_index),Res).
+
+test(no_uri_shape_duplicates, [ Res = 1,
+                                cleanup(space_clear(test_index))
+                              ]) :-
+    space_bulkload(uri_shape, test_index),
+    rdf_global_id(poseidon:'Deep-draught_anchorage_Aanloopgebied_IJmuiden',DeepURI),
+    aggregate_all(count,uri_shape(DeepURI,_,test_index),Res).
+
+
+
+% for rdfuri_shape/3  hook test
+:- multifile space:rdfuri_shape/3.
+space:rdfuri_shape(URI,Shape,_) :-
+    rdf(URI, 'http://geovocab.org/geometry#geometry',
+        WKTPointStr^^'http://www.openlinksw.com/schemas/virtrdf#Geometry'),
+    wkt_shape(WKTPointStr,Shape).
+
+rdfassert_linkedgeodataorg_point(URI) :-
+    URI = 'http://linkedgeodata.org/triplify/node25',
+    P   = 'http://geovocab.org/geometry#geometry',
+    Val ='POINT(3.06849 52.3254)'^^'http://www.openlinksw.com/schemas/virtrdf#Geometry',
+    rdf_assert(URI,P,Val).
+
+test(rdfuri_shape_hook, [ Point = point(3.06849,52.3254)
+                        ]) :-
+    rdfassert_linkedgeodataorg_point(URI),
+    uri_shape(URI,Point),
     !.
 
 :- end_tests(space).

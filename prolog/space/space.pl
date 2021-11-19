@@ -176,7 +176,14 @@ space_assert(URI,Shape,IndexName) :-
     ->  space_index(IndexName)
     ; true
     ),
-    assert(space_queue(IndexName,assert,URI,Shape)).
+    % add URI/Shape only if it is not already queued
+    % and does not exist in the C++ spatial index
+    (  rtree_uri_shape(URI, Shape, IndexName)
+    -> true
+    ;  space_queue(IndexName,assert,URI,Shape)
+    -> true
+    ;  assert(space_queue(IndexName,assert,URI,Shape))
+    ).
 
 %!  space_retract(+URI,+Shape,+IndexName) is det.
 %!  space_retract(+URI,+Shape) is det.
@@ -440,40 +447,74 @@ space_display_mbrs(IndexName) :-
 %   has to be a canonical URI, not a QName.
 
 uri_shape(URI,Shape) :-
-    georss_candidate(URI,Shape).
-uri_shape(URI,Shape) :-
-    wgs84_candidate(URI,Shape).
-uri_shape(URI,Shape) :-
-    freebase_candidate(URI,Shape).
-uri_shape(URI,Shape) :-
-    dbpedia_candidate(URI,Shape).
-uri_shape(URI,Shape) :-
-    space_setting(rtree_default_index(Index)), !,
-    rtree_uri_shape(URI, S, Index),
-    Shape = S. % FIXME: fix in C++, also fix duplicates.
+    uri_shape(URI,Shape,_).
+
 
 %!  uri_shape(?URI,?Shape,+Source) is nondet.
 %
 %   Finds pairs of URIs and their corresponding Shapes using
-%   uri_shape/2 from RDF that was loaded from a given Source.
+%   RDF that was loaded from a given Source.
+%   Unify Shape with the shape present in the spatial index,
+%   if none is found there, try to find the shape using
+%   rhe rdf database and  the builtin conversions. If the
+%   builtin conversions fail, try  the rdfuri_shape/3
+%   hook provided by the user.
+%
+%   Otherwise, fails silently.
+%
 
 uri_shape(URI,Shape,Source) :-
+    % load from C++ database
+    (  var(Source)
+    -> space_setting(rtree_default_index(Index)),
+       Source1 = Index
+    ;  Source1 = Source
+    ),
+        % try C++ spatial index
+    (   rtree_uri_shape(URI, Shape, Source1)
+    *-> true
+        % try built-in conversions and hook
+    ;   uri_shape_(URI,Shape,Source)
+    ).
+
+
+
+% Internal predicate that calls hook if available.
+uri_shape_(URI,Shape,Source) :-
     georss_candidate(URI,Shape,Source).
-uri_shape(URI,Shape,Source) :-
+uri_shape_(URI,Shape,Source) :-
     wgs84_candidate(URI,Shape,Source).
-uri_shape(URI,Shape,Source) :-
+uri_shape_(URI,Shape,Source) :-
     freebase_candidate(URI,Shape,Source).
-uri_shape(URI,Shape,Source) :-
+uri_shape_(URI,Shape,Source) :-
     dbpedia_candidate(URI,Shape,Source).
-uri_shape(URI,Shape,Source) :-
-    var(Source),
-    space_setting(rtree_default_index(Index)),
-    Source = Index, !,
-    rtree_uri_shape(URI, S, Index),
-    Shape = S. % FIXME: fix in C++
-uri_shape(URI,Shape,Source) :-
-    atom(Source),
-    rtree_uri_shape(URI, Shape, Source).
+uri_shape_(URI,Shape,Source) :-
+    % user provided hook
+    rdfuri_shape(URI,Shape,Source).
+
+%! rdfuri_shape(URI,Shape)
+% Hook to convert uri into
+% a shape. This is a hook that the
+% user can provide. This hook is called if the
+% conversions provided by the space library fail.
+% The current conversions provided are:
+% - georss
+% - wgs84 lat and long
+% - freebase
+% - dbpedia (without WKT)
+%
+%   A sample hook for linkgeodata.org (openstreetmaps)
+%   is the followig:
+%
+%   ```
+%   :- multifile space:rdfuri_shape/3.
+%   space:rdfuri_shape(URI,Shape,_) :-
+%      rdf(URI, 'http://geovocab.org/geometry#geometry',
+%          WKTPointStr^^'http://www.openlinksw.com/schemas/virtrdf#Geometry'),
+%      wkt_shape(WKTPointStr,Shape).
+%   ```
+:- multifile rdfuri_shape/3.
+
 
 uri_shape_graph(G,U,S) :- uri_shape(U,S,G).
 
