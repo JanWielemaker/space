@@ -385,7 +385,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       if (dim == 2) {
         cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
       } else if (dim == 1) {
-        cl->add(geos::geom::Coordinate((double)pt[1]));
+        cl->add(geos::geom::Coordinate((double)pt[1], 0));
       } else if (dim == 3) {
         cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2],(double)pt[3]));
       } else {
@@ -422,7 +422,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       if (dim == 2) {
         cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
       } else if (dim == 1) {
-        cl->add(geos::geom::Coordinate((double)pt[1]));
+        cl->add(geos::geom::Coordinate((double)pt[1], 0));
       } else if (dim == 3) {
         cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2],(double)pt[3]));
       } else {
@@ -446,7 +446,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
         if (dim == 2) {
           hcl->add(geos::geom::Coordinate((double)hpt[1],(double)hpt[2]));
         } else if (dim == 1) {
-          hcl->add(geos::geom::Coordinate((double)hpt[1]));
+          hcl->add(geos::geom::Coordinate((double)hpt[1], 0));
         } else if (dim == 3) {
           hcl->add(geos::geom::Coordinate((double)hpt[1],(double)hpt[2],(double)hpt[3]));
         } else {
@@ -499,8 +499,8 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       delete cl;
     } else if (dim == 1) {
       geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-      cl->add(geos::geom::Coordinate(low_point[0]));
-      cl->add(geos::geom::Coordinate(high_point[0]));
+      cl->add(geos::geom::Coordinate(low_point[0], 0));
+      cl->add(geos::geom::Coordinate(high_point[0], 0));
       geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();

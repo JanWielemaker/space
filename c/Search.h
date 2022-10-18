@@ -125,12 +125,12 @@ private:
     double m_minDist;
 
     NNEntry(id_type id, IEntry* e, double f) : m_id(id), m_pEntry(e), m_minDist(f) {}
-    ~NNEntry() { 
+    ~NNEntry() {
       if (m_pEntry != NULL)
         delete m_pEntry;
     }
 
-    struct ascending : public std::binary_function<NNEntry*, NNEntry*, bool>
+    struct ascending
     {
       bool operator()(const NNEntry* __x, const NNEntry* __y) const { return __x->m_minDist > __y->m_minDist; }
     };

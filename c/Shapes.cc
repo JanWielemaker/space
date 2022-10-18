@@ -168,8 +168,8 @@ regionToBox(const Region& r) {
     }
   } else if (r.m_dimension == 1) {
     geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-    cl->add(Coordinate(r.m_pLow[0]));
-    cl->add(Coordinate(r.m_pHigh[0]));
+    cl->add(Coordinate(r.m_pLow[0], 0));
+    cl->add(Coordinate(r.m_pHigh[0], 0));
     box = global_factory->createLineString(cl);
     box->normalize();
   } else if (r.m_dimension == 3) {
@@ -207,7 +207,7 @@ GEOSPoint::GEOSPoint(const double* pCoords, uint32_t dimension) {
     this->g = global_factory->createPoint(*c);
     delete c;
   } else if (dimension == 1) {
-    geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0]);
+    geos::geom::Coordinate *c = new geos::geom::Coordinate(pCoords[0], 0);
     this->g = global_factory->createPoint(*c);
     delete c;
   } else {
@@ -899,8 +899,8 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
         box->normalize();
       } else if (pr.m_dimension == 1) {
         geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-        cl->add(geos::geom::Coordinate(pr.m_pLow[0]));
-        cl->add(geos::geom::Coordinate(pr.m_pHigh[0]));
+        cl->add(geos::geom::Coordinate(pr.m_pLow[0], 0));
+        cl->add(geos::geom::Coordinate(pr.m_pHigh[0], 0));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
         box = global_factory->createPolygon(lr, NULL);
         box->normalize();
@@ -924,7 +924,7 @@ GEOSLineString::getMinimumDistance(const IShape& in) const {
         } else if (ppt.m_dimension == 3) {
           p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0],ppt.m_pCoords[1],ppt.m_pCoords[2]));
         } else if (ppt.m_dimension == 1) {
-          p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0]));
+          p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0], 0));
         } else {
           cerr << ppt.m_dimension << " dimensional points not supported" << endl;
           exit(1);
@@ -1407,8 +1407,8 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
         box->normalize();
       } else if (pr.m_dimension == 1) {
         geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-        cl->add(geos::geom::Coordinate(pr.m_pLow[0]));
-        cl->add(geos::geom::Coordinate(pr.m_pHigh[0]));
+        cl->add(geos::geom::Coordinate(pr.m_pLow[0], 0));
+        cl->add(geos::geom::Coordinate(pr.m_pHigh[0], 0));
         geos::geom::LinearRing *lr = global_factory->createLinearRing(cl);
         box = global_factory->createPolygon(lr, NULL);
         box->normalize();
@@ -1432,7 +1432,7 @@ GEOSPolygon::getMinimumDistance(const IShape& in) const {
         } else if (ppt.m_dimension == 3) {
           p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0],ppt.m_pCoords[1],ppt.m_pCoords[2]));
         } else if (ppt.m_dimension == 1) {
-          p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0]));
+          p = global_factory->createPoint(Coordinate(ppt.m_pCoords[0], 0));
         } else {
           cerr << ppt.m_dimension << " dimensional points not supported" << endl;
           exit(1);
