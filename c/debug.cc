@@ -34,6 +34,7 @@
 
 #include <config.h>
 #include "SWI-Prolog.h"
+#include "SWI-cpp2.h"
 #include "debug.h"
 
 #ifdef O_DEBUG
@@ -46,12 +47,8 @@ rdf_debuglevel()
 }
 
 
-foreign_t
-rdf_debug(term_t level)
-{ if ( !PL_get_integer(level, &dbg_level) )
-    return FALSE;
-
-  return TRUE;
+PREDICATE(rdf_debug, 1)
+{ return A1.get_integer(&dbg_level);
 }
 
 #endif

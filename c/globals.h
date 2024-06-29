@@ -43,24 +43,6 @@
 #define USE_UNSTABLE_GEOS_CPP_API 1
 #include <geos/geom/GeometryFactory.h>
 
-// Geometry
-static PlAtom ATOM_point("point");
-static PlAtom ATOM_box("box");
-static PlAtom ATOM_linestring("linestring");
-static PlAtom ATOM_linearring("linearring");
-static PlAtom ATOM_polygon("polygon");
-
-// Configuration parameters
-static PlAtom ATOM_rtree_utilization("rtree_utilization");
-static PlAtom ATOM_rtree_nodesize("rtree_nodesize");
-static PlAtom ATOM_rtree_storage("rtree_storage");
-static PlAtom ATOM_rtree_distance_function("rtree_distance_function");
-// Configuration values
-static PlAtom ATOM_pythagorean("pythagorean");
-static PlAtom ATOM_haversine("haversine");
-static PlAtom ATOM_memory("memory");
-static PlAtom ATOM_disk("disk");
-
 extern geos::geom::GeometryFactory::Ptr global_factory;
 
 #endif // __GLOBALS_H

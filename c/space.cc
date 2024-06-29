@@ -136,6 +136,16 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
 
 PREDICATE(rtree_set_space,2)
 {
+  // Configuration parameters
+  static PlAtom ATOM_rtree_utilization("rtree_utilization");
+  static PlAtom ATOM_rtree_nodesize("rtree_nodesize");
+  static PlAtom ATOM_rtree_storage("rtree_storage");
+  static PlAtom ATOM_rtree_distance_function("rtree_distance_function");
+  // Configuration values
+  static PlAtom ATOM_pythagorean("pythagorean");
+  static PlAtom ATOM_haversine("haversine");
+  static PlAtom ATOM_memory("memory");
+  static PlAtom ATOM_disk("disk");
 #ifdef DEBUGGING
   cout << "setting " << (char*)A2 << " parameter of " << (char*)A1 << endl;
 #endif
