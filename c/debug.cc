@@ -47,8 +47,9 @@ rdf_debuglevel()
 }
 
 
-PREDICATE(rdf_debug, 1)
-{ return A1.get_integer(&dbg_level);
+foreign_t
+rdf_debug(term_t level)
+{ return PlTerm(level).get_integer(&dbg_level);
 }
 
 #endif
