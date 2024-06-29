@@ -73,9 +73,7 @@ public:
     cache0 = PL_new_term_refs(3);
     p = PL_predicate("call",3,"system");
     cached = false;
-    if (!PL_put_term(cache0+0,goal)) {
-      throw PlResourceError();
-    }
+    Plx_put_term(cache0+0,goal);
     q = PL_open_query(NULL, PL_Q_NORMAL, p, cache0);
     index = i;
     index->bulkload_tmp_id_cnt = 0;
@@ -95,17 +93,17 @@ public:
       cached = false;
       term_t shape_term = PL_new_term_ref();
       shape_term = (term_t)(cache0+2);
-      IShape *s = index->interpret_shape(shape_term);
+      IShape *s = index->interpret_shape(PlTerm(shape_term));
       Region r;
       s->getMBR(r);
       PlTerm uri_term((term_t)cache0+1);
-      PlAtom uri_atom(uri_term);
+      PlAtom uri_atom(uri_term.as_atom());
       id_type id = index->get_new_id(uri_term);
       index->storeShape(id,s,PlTerm(shape_term));
 #ifdef DEBUGGING
       cout << "uri " << (char*)uri_term << " atom " << uri_atom.handle << " shape " << r << " id " << id << endl;
 #endif
-       rv = new RTree::Data(sizeof(uri_atom.handle), reinterpret_cast<uint8_t*>(&uri_atom.handle), r, id);
+      rv = new RTree::Data(sizeof(uri_atom.unwrap()), reinterpret_cast<uint8_t*>(uri_atom.unwrap_as_ptr()), r, id);
     }
     WRUNLOCK(&index->lock);
     return rv;
@@ -140,17 +138,17 @@ public:
  */
 
 
-RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) {
+RTreeIndex::RTreeIndex(PlTerm indexname) :  storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname.as_atom()), utilization(0.7), nodesize(4),  storage_manager(NULL), buffer(NULL), tree(NULL) {
   bulkload_tmp_id_cnt = -1;
   INIT_LOCK(&lock);
-  PL_register_atom(PlAtom(indexname).handle);
+  indexname.as_atom().register_ref();
 }
 
-RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname), storage_manager(NULL), buffer(NULL), tree(NULL) {
+RTreeIndex::RTreeIndex(PlTerm indexname, double util, int nodesz) : storage(MEMORY), distance_function(PYTHAGOREAN), baseName(indexname.as_atom()), storage_manager(NULL), buffer(NULL), tree(NULL) {
   utilization = util;
   nodesize = nodesz;
   bulkload_tmp_id_cnt = -1;
-  PL_register_atom(PlAtom(indexname).handle);
+  indexname.as_atom().register_ref();
   INIT_LOCK(&lock);
 }
 
@@ -160,7 +158,7 @@ RTreeIndex::~RTreeIndex() {
     return;
   }
   this->clear_tree();
-  PL_unregister_atom(PlAtom(baseName).handle);
+  baseName.unregister_ref();
   WRUNLOCK(&lock);
 }
 
@@ -201,7 +199,7 @@ void RTreeIndex::storeShape(id_type id,IShape *s,PlTerm t) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  id_shape_map[id] = pair<IShape*,record_t>(s,PL_record(t));
+  id_shape_map[id] = pair<IShape*,record_t>(s,Plx_record(t.unwrap()));
   WRUNLOCK(&lock);
 }
 
@@ -263,11 +261,11 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return (id_type)0;
   }
-  PlAtom uri_atom(uri);
-  PL_register_atom(uri_atom.handle); // FIXME: unregister somewhere...
+  PlAtom uri_atom(uri.as_atom());
+  uri_atom.register_ref(); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
-    uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.handle,id));
+    uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.unwrap(),id));
   } else {
     if (tree == NULL) {
       id = -1;
@@ -275,7 +273,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
       IStatistics* stats;
       tree->getStatistics(&stats);
       id = stats->getNumberOfData();
-      uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.handle,id));
+      uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.unwrap(),id));
       delete stats;
     }
   }
@@ -303,9 +301,8 @@ void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
   if (storage == MEMORY) {
     storage_manager = StorageManager::createNewMemoryStorageManager();
   } else if (storage == DISK) {
-    string *bns = new string((char*)bnt);
-    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
-    delete bns;
+    string bns = bnt.as_string();  // TODO(peter): CVT_ALL|CVT_WRITEQ
+    storage_manager = StorageManager::createNewDiskStorageManager(bns, 32);
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   tree = RTree::createNewRTree(*buffer, utilization,
@@ -321,7 +318,7 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
     cerr << "only dimensionality from 1 to 3 supported, not " << dimensionality << endl;
     return false;
   }
-  RTreePrologStream stream(goal,this); // assuming goal of the form 'somepred(URI,Shape)'
+  RTreePrologStream stream(goal.unwrap(),this); // assuming goal of the form 'somepred(URI,Shape)'
 
   if ( !WRLOCK(&lock,FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
@@ -331,9 +328,8 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   if (storage == MEMORY) {
     storage_manager = StorageManager::createNewMemoryStorageManager();
   } else if (storage == DISK) {
-    string *bns = new string((const char*)baseName);
-    storage_manager = StorageManager::createNewDiskStorageManager(*bns, 32);
-    delete bns;
+    string bns = baseName.as_string(); // TODO(peter): CVT_ALL|CVT_WRITEQ
+    storage_manager = StorageManager::createNewDiskStorageManager(bns, 32);
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
   id_type indexIdentifier;
@@ -355,7 +351,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 
     double *point = new double[shape_term.arity()];
     for (size_t i = 1; i <= shape_term.arity(); i++) {
-      point[i-1] = (double)shape_term[i];
+      point[i-1] = shape_term[i].as_double();
     }
     GEOSPoint *p = new GEOSPoint(point,shape_term.arity()); // testing GEOS points
     #ifdef DEBUGGING
@@ -369,13 +365,13 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     if (shape_term.arity() != 1) {
       cout << "arity not 1: linestring must have one argument, a list containing a list of points" << endl;
       return NULL;
-    } else if (!PL_is_list(shape_term[1])) {
+    } else if (!shape_term[1].is_list()) {
       cout << "first argument not a list: linestring must have one argument, a list containing a list of points" << endl;
       return NULL;
     }
     geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-    PlTail list(shape_term[1]);
-    PlTerm pt;
+    PlTerm_tail list(shape_term[1]);
+    PlTerm_var pt;
     while (list.next(pt)) {
       if (pt.name() != ATOM_point) {
         cerr << "linestring contains non-point" << endl;
@@ -383,11 +379,11 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       }
       uint32_t dim = pt.arity();
       if (dim == 2) {
-        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(),pt[2].as_double()));
       } else if (dim == 1) {
-        cl->add(geos::geom::Coordinate((double)pt[1], 0));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(), 0));
       } else if (dim == 3) {
-        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2],(double)pt[3]));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(),pt[2].as_double(),pt[3].as_double()));
       } else {
         cerr << dim << " dimensional points not supported" << endl;
       }
@@ -403,16 +399,16 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     if (shape_term.arity() != 1) {
       cout << "arity not 1: polygon must have one argument, a list containing a list of points representing the shell, and an second argument, a list containing lists of points representing the holes" << endl;
       return NULL;
-    } else if (!PL_is_list(shape_term[1])) {
+    } else if (!shape_term[1].is_list()) {
       cout << "first argument not a list: polygon must have one argument, a list containing a list of points representing the shell, and an second argument, a list containing lists of points representing the holes" << endl;
       return NULL;
     }
     geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
-    PlTail linearrings(shape_term[1]);
-    PlTerm ring;
-    linearrings.next(ring);
-    PlTail shell(ring);
-    PlTerm pt;
+    PlTerm_tail linearrings(shape_term[1]);
+    PlTerm_var ring;
+    PlCheckFail(linearrings.next(ring)); // TODO(peter): throw exception?
+    PlTerm_tail shell(ring);
+    PlTerm_var pt;
     while (shell.next(pt)) {
       if (pt.name() != ATOM_point) {
         cerr << "polygon shell contains non-point" << endl;
@@ -420,11 +416,11 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       }
       uint32_t dim = pt.arity();
       if (dim == 2) {
-        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2]));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(),pt[2].as_double()));
       } else if (dim == 1) {
-        cl->add(geos::geom::Coordinate((double)pt[1], 0));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(), 0));
       } else if (dim == 3) {
-        cl->add(geos::geom::Coordinate((double)pt[1],(double)pt[2],(double)pt[3]));
+        cl->add(geos::geom::Coordinate(pt[1].as_double(),pt[2].as_double(),pt[3].as_double()));
       } else {
         cerr << dim << " dimensional points not supported" << endl;
       }
@@ -435,8 +431,8 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     vector<geos::geom::LinearRing*> *holes = new vector<geos::geom::LinearRing*>;
     while (linearrings.next(ring)) {
       geos::geom::CoordinateArraySequence *hcl = new geos::geom::CoordinateArraySequence();
-      PlTail hole(ring);
-      PlTerm hpt;
+      PlTerm_tail hole(ring);
+      PlTerm_var hpt;
       while (hole.next(hpt)) {
         if (hpt.name() != ATOM_point) {
           cerr << "polygon hole contains non-point" << endl;
@@ -444,11 +440,11 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
         }
         uint32_t dim = hpt.arity();
         if (dim == 2) {
-          hcl->add(geos::geom::Coordinate((double)hpt[1],(double)hpt[2]));
+          hcl->add(geos::geom::Coordinate(hpt[1].as_double(),hpt[2].as_double()));
         } else if (dim == 1) {
-          hcl->add(geos::geom::Coordinate((double)hpt[1], 0));
+          hcl->add(geos::geom::Coordinate(hpt[1].as_double(), 0));
         } else if (dim == 3) {
-          hcl->add(geos::geom::Coordinate((double)hpt[1],(double)hpt[2],(double)hpt[3]));
+          hcl->add(geos::geom::Coordinate(hpt[1].as_double(),hpt[2].as_double(),hpt[3].as_double()));
         } else {
           cerr << dim << " dimensional points not supported" << endl;
         }
@@ -478,11 +474,11 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     double *high_point = new double[dim];
     if (shape_term[1].name() != ATOM_point) return NULL;
     for (int i = 1; i <= dim; i++) {
-      low_point[i-1] = (double)shape_term[1][i];
+      low_point[i-1] = shape_term[1][i].as_double();
     }
     if (shape_term[2].name() != ATOM_point) return NULL;
     for (int i = 1; i <= dim; i++) {
-      high_point[i-1] = (double)shape_term[2][i];
+      high_point[i-1] = shape_term[2][i].as_double();
     }
 
     geos::geom::Polygon *box;
@@ -516,7 +512,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
     global_factory->destroyGeometry(box);
     return poly;
   } else {
-    cerr << "shape type \"" << (char*)shape_term.name() << "\" unsupported" << endl;
+    cerr << "shape type \"" << shape_term.name().as_string() << "\" unsupported" << endl;
     return NULL;
   }
   return NULL;
@@ -545,8 +541,8 @@ bool RTreeIndex::insert_single_object(PlTerm uri,PlTerm shape_term) {
     return FALSE;
   }
   try {
-    PlAtom uri_atom(uri);
-    tree->insertData(sizeof(uri_atom.handle), reinterpret_cast<uint8_t*>(&uri_atom.handle), *shape, id);
+    PlAtom uri_atom(uri.as_atom());
+    tree->insertData(sizeof(uri_atom.unwrap()), reinterpret_cast<uint8_t*>(uri_atom.unwrap_as_ptr()), *shape, id);
   } catch (...) {
     WRUNLOCK(&lock);
     return FALSE;
@@ -566,7 +562,7 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     return FALSE;
   }
   IteratorState *state = new IteratorState();
-  state->uri_id_range = uri_id_multimap.equal_range(PlAtom(uri).handle);
+  state->uri_id_range = uri_id_multimap.equal_range(uri.as_atom().unwrap());
   for ( state->uri_id_iter = state->uri_id_range.first;
         state->uri_id_iter != state->uri_id_range.second;
         ++(state->uri_id_iter)) {

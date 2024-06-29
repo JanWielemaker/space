@@ -37,7 +37,7 @@
 #include "Shapes.h"
 #include "Index.h"
 #include "Search.h"
-#include <SWI-cpp.h>
+#include <SWI-cpp2.h>
 #include <iostream>
 #include <string.h>
 
@@ -65,12 +65,12 @@ static void index_clear(PlTerm indexname) {
   cout << "clearing " << (char*)indexname << endl;
   #endif
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
-  PlAtom idx_atom(indexname);
+  PlAtom idx_atom(indexname.as_atom());
   if ( !WRLOCK(&index_map_lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
+  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     Index *idx = iter->second;
     index_map.erase(iter);
@@ -91,7 +91,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
+  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
@@ -102,7 +102,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
     if (index_map.size() == 0) {
       init_geos();
     }
-    index_map[idx_atom.handle] = rv;
+    index_map[idx_atom.unwrap()] = rv;
   }
   WRUNLOCK(&index_map_lock);
   return rv;
@@ -111,13 +111,13 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
 
 static RTreeIndex* assert_rtree_index(PlTerm indexname) {
   if ( index_map_lock.writer != -1 ) INIT_LOCK(&index_map_lock);
-  PlAtom idx_atom(indexname);
+  PlAtom idx_atom(indexname.as_atom());
   RTreeIndex *rv = NULL;
   if ( !WRLOCK(&index_map_lock, FALSE) ) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.handle);
+  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
@@ -128,7 +128,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
     if (index_map.size() == 0) {
       init_geos();
     }
-    index_map[idx_atom.handle] = rv;
+    index_map[idx_atom.unwrap()] = rv;
   }
   WRUNLOCK(&index_map_lock);
   return rv;
@@ -141,9 +141,9 @@ PREDICATE(rtree_set_space,2)
 #endif
   RTreeIndex* idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A1));
   if (A2.name() == ATOM_rtree_utilization) {
-    idx->utilization = (double)A2[1];
+    idx->utilization = A2[1].as_double();
   } else if (A2.name() == ATOM_rtree_nodesize) {
-    idx->nodesize = (int)A2[1];
+    idx->nodesize = A2[1].as_int();
   } else if (A2.name() == ATOM_rtree_storage) {
     if (A2[1].name() == ATOM_memory) {
       idx->storage = MEMORY;
@@ -182,23 +182,23 @@ PREDICATE(rtree_clear,1)
 // uri, shape, indexname
 PREDICATE_NONDET(rtree_uri_shape,3)
 {
+  auto state = handle.context_unique_ptr<IteratorState>();
   try
     {
       RTreeIndex *idx = NULL;
-      IteratorState *state = NULL;
 
-      switch( PL_foreign_control((control_t)handle) )
+      switch( handle.foreign_control() )
         {
         case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-	  state = new IteratorState();
-	  if (PL_is_variable(A1.ref)) {
+	  state.reset(new IteratorState());
+	  if (A1.is_variable()) {
             state->uri_id_range.first = idx->uri_id_multimap.begin();
 	    state->uri_id_range.second = idx->uri_id_multimap.end();
             state->uri_id_iter = state->uri_id_range.first;
 	  } else {
-	    state->uri_id_range = idx->uri_id_multimap.equal_range(PlAtom(A1).handle);
+	    state->uri_id_range = idx->uri_id_multimap.equal_range(A1.as_atom().unwrap());
             state->uri_id_iter = state->uri_id_range.first;
 	  }
           goto iterate;
@@ -206,28 +206,23 @@ PREDICATE_NONDET(rtree_uri_shape,3)
         case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          state = (IteratorState*)PL_foreign_context_address((control_t)handle);
         iterate:
           if (state->uri_id_iter == state->uri_id_range.second) {
-            delete state;
             PL_fail;
           } else {
-	    A1 = PlAtom(state->uri_id_iter->first);
-            term_t shape_term = PL_new_term_ref();
-            if (idx->getShapeTerm(state->uri_id_iter->second,shape_term)) {
-	      A2 = PlTerm(shape_term);
+	    PlCheckFail(A1.unify_atom(PlAtom(state->uri_id_iter->first)));
+            PlTerm_var shape_term;
+            if (idx->getShapeTerm(state->uri_id_iter->second,shape_term.unwrap())) {
+	      PlCheckFail(A2.unify_term(shape_term));
 //              cout << "found id " << state->uri_id_iter->second << endl;
 	    } else {
-              delete state;
               PL_fail;
             }
             ++(state->uri_id_iter);
-            PL_retry_address(state);
+            PL_retry_address(state.release());
 	  }
 
-        case PL_CUTTED:
-          state = (IteratorState*)PL_foreign_context_address((control_t)handle);
-          delete state;
+        case PL_PRUNED:
           PL_succeed;
         }
 
@@ -268,8 +263,8 @@ PREDICATE(rtree_bulkload,3)
   cout << "bulk loading of objects into " << (char*)A1 << endl;
   #endif
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
-  if(!idx->bulk_load(A2,(int)A3)) PL_fail;
-  cerr << "% Added " << idx->bulkload_tmp_id_cnt << " URI-Shape pairs to " << (char*)A1 << endl;
+  if(!idx->bulk_load(A2,A3.as_int())) PL_fail;
+  cerr << "% Added " << idx->bulkload_tmp_id_cnt << " URI-Shape pairs to " << A1.as_string() << endl;
   PL_succeed;
 }
 
@@ -278,16 +273,16 @@ PREDICATE(rtree_insert_list,2)
   #ifdef DEBUGGING
   cout << "inserting list of objects into " << (char*)A1 << endl;
   #endif
-  PlTerm list = PL_copy_term_ref((term_t)A2);
-  PlTerm head = PL_new_term_ref();
-  PlTerm uri_term = PL_new_term_ref();
-  PlTerm shape_term = PL_new_term_ref();
-  while( PL_get_list(list, head, list) ) {
-    atom_t name_atom;
+  PlTerm list = A2.copy_term_ref();
+  PlTerm_var head;
+  PlTerm_var uri_term;
+  PlTerm_var shape_term;
+  while( list.get_list(head, list) ) {
+    PlAtom name_atom(PlAtom::null);
     size_t arity;
-    if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
-    if (!PL_get_arg(1,head,uri_term) ||
-        !PL_get_arg(2,head,shape_term)) PL_fail;
+    if (!head.get_name_arity(&name_atom,&arity)) PL_fail;
+    if (!head.get_arg(1,uri_term) ||
+        !head.get_arg(2,shape_term)) PL_fail;
     RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
     if (!idx->insert_single_object(uri_term,shape_term)) PL_fail;
   }
@@ -310,16 +305,16 @@ PREDICATE(rtree_delete_list,2)
   #ifdef DEBUGGING
   cout << "deleting list of objects from " << (char*)A1 << endl;
   #endif
-  PlTerm list = PL_copy_term_ref((term_t)A2);
-  PlTerm head = PL_new_term_ref();
-  PlTerm uri_term = PL_new_term_ref();
-  PlTerm shape_term = PL_new_term_ref();
-  while( PL_get_list(list, head, list) ) {
-    atom_t name_atom;
+  PlTerm list = A2.copy_term_ref();
+  PlTerm_var head;
+  PlTerm_var uri_term;
+  PlTerm_var shape_term;
+  while( list.get_list(head, list) ) {
+    PlAtom name_atom(PlAtom::null);
     size_t arity;
-    if (!PL_get_name_arity(head,&name_atom,&arity)) PL_fail;
-    if (!PL_get_arg(1,head,uri_term) ||
-        !PL_get_arg(2,head,shape_term)) PL_fail;
+    if (!head.get_name_arity(&name_atom,&arity)) PL_fail;
+    if (!head.get_arg(1,uri_term) ||
+        !head.get_arg(2,shape_term)) PL_fail;
     RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
     if (!idx->delete_single_object(uri_term,shape_term)) PL_fail;
   }
@@ -329,40 +324,35 @@ PREDICATE(rtree_delete_list,2)
 
 PREDICATE_NONDET(rtree_incremental_intersection_query,3)
 {
+  auto qs = handle.context_unique_ptr<IncrementalRangeStrategy>();
   try
     {
-      IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
-      switch( PL_foreign_control((control_t)handle) )
+      switch( handle.foreign_control() )
         {
         case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape(A1),NULL,idx);
+          qs.reset(new IncrementalRangeStrategy(IntersectionQuery,idx->interpret_shape(A1),NULL,idx));
           goto iterate;
 
         case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
-            delete qs;
             PL_fail;
           }
           {
             PlAtom result_atom(qs->result);
-            A2 = result_atom;
+            PlCheckFail(A2.unify_atom(result_atom));
           }
-          PL_retry_address(qs);
+          PL_retry_address(qs.release());
 
-        case PL_CUTTED:
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
-          delete qs;
+        case PL_PRUNED:
           PL_succeed;
         }
-
 
     }
   catch (Tools::Exception& e)
@@ -386,37 +376,32 @@ PREDICATE_NONDET(rtree_incremental_intersection_query,3)
 
 PREDICATE_NONDET(rtree_incremental_containment_query,3)
 {
-
+  auto qs = handle.context_unique_ptr<IncrementalRangeStrategy>();
   try
     {
-      IncrementalRangeStrategy* qs;
       RTreeIndex *idx = NULL;
-      switch( PL_foreign_control((control_t)handle) )
+      switch( handle.foreign_control() )
         {
         case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape(A1),NULL,idx);
+          qs.reset(new IncrementalRangeStrategy(ContainmentQuery,idx->interpret_shape(A1),NULL,idx));
           goto iterate;
 
         case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
-            delete qs;
             PL_fail;
           }
           {
             PlAtom result_atom(qs->result);
-            A2 = result_atom;
+            PlCheckFail(A2.unify_atom(result_atom));
           }
-          PL_retry_address(qs);
-      case PL_CUTTED:
-        qs = (IncrementalRangeStrategy*)PL_foreign_context_address((control_t)handle);
-        delete qs;
+          PL_retry_address(qs.release());
+      case PL_PRUNED:
         PL_succeed;
       }
 
@@ -442,40 +427,35 @@ PREDICATE_NONDET(rtree_incremental_containment_query,3)
 
 PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 {
-
+  auto qs = handle.context_unique_ptr<IncrementalNearestNeighborStrategy>();
   try
     {
-      IncrementalNearestNeighborStrategy* qs;
       RTreeIndex *idx = NULL;
 
-      switch( PL_foreign_control((control_t)handle) )
+      switch( handle.foreign_control() )
         {
         case PL_FIRST_CALL:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
-          qs = new IncrementalNearestNeighborStrategy(idx->interpret_shape(A1),NULL,idx);
+          qs.reset(new IncrementalNearestNeighborStrategy(idx->interpret_shape(A1),NULL,idx));
           goto iterate;
 
         case PL_REDO:
           idx = dynamic_cast<RTreeIndex*>(assert_rtree_index(A3));
           if (idx->tree == NULL) PL_fail;
 
-          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle);
         iterate:
           idx->tree->queryStrategy(*qs);
           if (!qs->result_found) {
-            delete qs;
             PL_fail;
           }
           {
             PlAtom result_atom(qs->result);
-            A2 = result_atom;
+            PlCheckFail(A2.unify_atom(result_atom));
           }
-          PL_retry_address(qs);
+          PL_retry_address(qs.release());
 
-        case PL_CUTTED:
-          qs = (IncrementalNearestNeighborStrategy*)PL_foreign_context_address((control_t)handle);
-          delete qs;
+        case PL_PRUNED:
           PL_succeed;
         }
 
@@ -501,12 +481,12 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 
 PREDICATE(rtree_distance,4) {
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
-  IShape *a = idx->interpret_shape(A2);
+  IShape *a = idx->interpret_shape(A2);  // TODO(peter): unique_ptr
   IShape *b = idx->interpret_shape(A3);
   double d = a->getMinimumDistance(*b);
   delete a;
   delete b;
-  return (A4 = d);
+  return A4.unify_float(d);
 }
 
 PREDICATE(rtree_display,1) {
@@ -647,7 +627,6 @@ PREDICATE(geos_test,0) {
 
   cout << "after load, testing copy" << endl;
   cout << "distance " << p4 << " to " << gpoly2 << " = " << p4->getMinimumDistance(*gpoly2) << endl;
-
 
   PL_succeed;
 }

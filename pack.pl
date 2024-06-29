@@ -1,5 +1,5 @@
 name(space).
-version('0.3.4').
+version('0.3.5').
 title('Space package').
 keywords(['geo', 'spatial']).
 author( 'Willem van Hage', 'w.vanhage@esciencecenter.nl' ).

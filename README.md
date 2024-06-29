@@ -14,4 +14,4 @@ sources.
 
 On recent Debian versions (_bullseye_) these may be installed using
 
-    apt-get install libspatialindex-dev libgeos-dev
+    apt-get install libspatialindex-dev libgeos-dev libgeos++-dev libserd-dev

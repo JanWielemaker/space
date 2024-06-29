@@ -35,7 +35,7 @@
 #ifndef __INDEX_H
 #define __INDEX_H
 
-#include <SWI-cpp.h>
+#include <SWI-cpp2.h>
 #include "globals.h"
 #include "Shapes.h"
 #include "lock.h"
