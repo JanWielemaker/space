@@ -35,7 +35,7 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
-#include <SWI-cpp.h>
+#include <SWI-cpp2.h>
 #include "globals.h"
 #include <spatialindex/SpatialIndex.h>
 #include "Index.h"

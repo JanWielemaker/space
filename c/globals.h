@@ -39,7 +39,7 @@
 #include "../config.h"
 #endif
 
-#include <SWI-cpp.h>
+#include <SWI-cpp2.h>
 #define USE_UNSTABLE_GEOS_CPP_API 1
 #include <geos/geom/GeometryFactory.h>
 

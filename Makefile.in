@@ -10,7 +10,7 @@ CXX=	@CXX@
 LD=	@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
-CFLAGS+=-I. -std=c++17
+CFLAGS+=-I. -std=c++17 -O2
 
 all:	$(SOBJ)
 
@@ -23,10 +23,10 @@ $(SOBJ): $(OBJ)
 	$(CXX) $(ARCH) $(CFLAGS) -c -o $@ $<
 
 check::
-	swipl -g test_space -t halt test/test_space.pl
+	$(SWIPL) -g test_space -t halt test/test_space.pl
 
 install::
 clean:
-	rm -f c/*.o *~
+	rm -f c/*.o *~ Makefile
 distclean: clean
 	rm -f $(SOBJ)
