@@ -42,6 +42,7 @@
 
 extern "C" {
 
+// TODO(peter): replace by PlPermissionError
 static int
 permission_error(const char *op, const char *type, const char *obj,
 		 const char *msg)

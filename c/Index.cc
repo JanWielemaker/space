@@ -347,6 +347,12 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
 }
 
 IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
+  static PlAtom ATOM_point("point");
+  static PlAtom ATOM_box("box");
+  static PlAtom ATOM_linestring("linestring");
+  static PlAtom ATOM_linearring("linearring");
+  static PlAtom ATOM_polygon("polygon");
+
   if (shape_term.name() == ATOM_point) {
 
     double *point = new double[shape_term.arity()];
