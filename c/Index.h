@@ -65,9 +65,6 @@ using namespace SpatialIndex;
 class Index
 {
  public:
-  storage_t storage;
-  distance_function_t distance_function;
-
   virtual ~Index() {};
 
   virtual id_type get_new_id(PlTerm uri) = 0;
@@ -82,9 +79,6 @@ class Index
   virtual void create_tree(uint32_t dimensionality, double util, int nodesz) = 0;
   virtual bool insert_single_object(PlTerm uri,PlTerm shape_term) = 0;
   virtual bool delete_single_object(PlTerm uri,PlTerm shape_term) = 0;
-
- private:
-  rwlock lock;
 
 };
 
@@ -107,21 +101,21 @@ class RTreeIndex : public Index
 
   RTreeIndex(PlTerm indexname);
   RTreeIndex(PlTerm indexname, double util, int nodesz);
-  virtual ~RTreeIndex();
+  virtual ~RTreeIndex() override;
 
-  virtual id_type get_new_id(PlTerm uri);
-  virtual void storeShape(id_type id,IShape *s,PlTerm t);
-  virtual IShape* getShape(id_type id);
-  virtual bool getShapeTerm(id_type id,term_t t);
-  virtual void deleteShape(id_type id);
+  virtual id_type get_new_id(PlTerm uri) override;
+  virtual void storeShape(id_type id,IShape *s,PlTerm t) override;
+  virtual IShape* getShape(id_type id) override;
+  virtual bool getShapeTerm(id_type id,term_t t) override;
+  virtual void deleteShape(id_type id) override;
 
-  virtual IShape* interpret_shape(PlTerm shape_term);
+  virtual IShape* interpret_shape(PlTerm shape_term) override;
   virtual bool bulk_load(PlTerm goal,uint32_t dimensionality);
-  virtual void clear_tree();
-  virtual void create_tree(uint32_t dimensionality);
-  virtual void create_tree(uint32_t dimensionality, double util, int nodesz);
-  virtual bool insert_single_object(PlTerm uri,PlTerm shape_term);
-  virtual bool delete_single_object(PlTerm uri,PlTerm shape_term);
+  virtual void clear_tree() override;
+  virtual void create_tree(uint32_t dimensionality) override;
+  virtual void create_tree(uint32_t dimensionality, double util, int nodesz) override;
+  virtual bool insert_single_object(PlTerm uri,PlTerm shape_term) override;
+  virtual bool delete_single_object(PlTerm uri,PlTerm shape_term) override;
   
  public:
   id_type bulkload_tmp_id_cnt;
