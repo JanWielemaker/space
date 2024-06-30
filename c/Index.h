@@ -70,7 +70,7 @@ class Index
   virtual id_type get_new_id(PlTerm uri) = 0;
   virtual void storeShape(id_type id,IShape *s,PlTerm shape_term) = 0;
   virtual IShape* getShape(id_type id) = 0;
-  virtual bool getShapeTerm(id_type id,term_t t) = 0;
+  virtual bool getShapeTerm(id_type id,PlTerm t) = 0;
   virtual void deleteShape(id_type id) = 0;
 
   virtual IShape* interpret_shape(PlTerm shape_term) = 0;
@@ -97,7 +97,7 @@ class RTreeIndex : public Index
   ISpatialIndex* tree;
   id_type indexIdentifier;
   multimap<atom_t,id_type> uri_id_multimap;
-  map<id_type,pair<IShape*,record_t> > id_shape_map;
+  map<id_type,pair<IShape*,record_t> > id_shape_map; // TODO: PlRecord
 
   RTreeIndex(PlTerm indexname);
   RTreeIndex(PlTerm indexname, double util, int nodesz);
@@ -106,7 +106,7 @@ class RTreeIndex : public Index
   virtual id_type get_new_id(PlTerm uri) override;
   virtual void storeShape(id_type id,IShape *s,PlTerm t) override;
   virtual IShape* getShape(id_type id) override;
-  virtual bool getShapeTerm(id_type id,term_t t) override;
+  virtual bool getShapeTerm(id_type id,PlTerm t) override;
   virtual void deleteShape(id_type id) override;
 
   virtual IShape* interpret_shape(PlTerm shape_term) override;

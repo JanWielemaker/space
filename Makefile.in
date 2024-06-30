@@ -20,7 +20,7 @@ $(SOBJ): $(OBJ)
 	$(LD) $(ARCH) $(LDSOFLAGS) -o $@ $(OBJ) $(LIBS) $(SWISOLIB)
 
 .cc.o:
-	$(CXX) $(ARCH) $(CFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(COFLAGS) $(ARCH) $(CFLAGS) -c -o $@ $<
 
 check::
 	$(SWIPL) -g test_space -t halt test/test_space.pl

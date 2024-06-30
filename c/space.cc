@@ -70,7 +70,7 @@ static void index_clear(PlTerm indexname) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
+  auto iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     Index *idx = iter->second;
     index_map.erase(iter);
@@ -91,7 +91,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname, double util, int nodesz)
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
+  auto iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
@@ -117,7 +117,7 @@ static RTreeIndex* assert_rtree_index(PlTerm indexname) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return NULL;
   }
-  map<atom_t,Index*>::iterator iter = index_map.find(idx_atom.unwrap());
+  auto iter = index_map.find(idx_atom.unwrap());
   if (iter != index_map.end()) {
     rv = dynamic_cast<RTreeIndex*>(iter->second);
   } else {
@@ -222,7 +222,7 @@ PREDICATE_NONDET(rtree_uri_shape,3)
           } else {
 	    PlCheckFail(A1.unify_atom(PlAtom(state->uri_id_iter->first)));
             PlTerm_var shape_term;
-            if (idx->getShapeTerm(state->uri_id_iter->second,shape_term.unwrap())) {
+            if (idx->getShapeTerm(state->uri_id_iter->second,shape_term)) {
 	      PlCheckFail(A2.unify_term(shape_term));
 //              cout << "found id " << state->uri_id_iter->second << endl;
 	    } else {
@@ -491,11 +491,9 @@ PREDICATE_NONDET(rtree_incremental_nearest_neighbor_query,3)
 
 PREDICATE(rtree_distance,4) {
   RTreeIndex *idx = dynamic_cast<RTreeIndex*> (assert_rtree_index(A1));
-  IShape *a = idx->interpret_shape(A2);  // TODO(peter): unique_ptr
-  IShape *b = idx->interpret_shape(A3);
+  unique_ptr<IShape> a(idx->interpret_shape(A2));
+  unique_ptr<IShape> b(idx->interpret_shape(A3));
   double d = a->getMinimumDistance(*b);
-  delete a;
-  delete b;
   return A4.unify_float(d);
 }
 
