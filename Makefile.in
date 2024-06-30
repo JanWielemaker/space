@@ -10,7 +10,7 @@ CXX=	@CXX@
 LD=	@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
-CFLAGS+=-I. -std=c++17 -O2
+CFLAGS+=-I. -std=c++17 -O2 -g  # -gdwarf-2 -g3
 
 all:	$(SOBJ)
 
