@@ -35,6 +35,7 @@
 #include <config.h>
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
+#include <SWI-cpp2.h>
 #include "lock.h"
 #include "debug.h"
 #include <assert.h>
@@ -42,14 +43,14 @@
 
 extern "C" {
 
-// TODO(peter): replace by PlPermissionError
+// TODO: replace by PlPermissionError
 static int
 permission_error(const char *op, const char *type, const char *obj,
 		 const char *msg)
 { term_t ex, ctx;
 
-  if ( !(ex = PL_new_term_ref()) ||
-       !(ctx = PL_new_term_ref()) )
+  if ( !(ex = Plx_new_term_ref()) ||
+       !(ctx = Plx_new_term_ref()) )
     return FALSE;
 
   if ( msg )
@@ -67,7 +68,7 @@ permission_error(const char *op, const char *type, const char *obj,
 		      PL_TERM, ctx) )
     return FALSE;
 
-  return PL_raise_exception(ex);
+  return Plx_raise_exception(ex);
 }
 
 
@@ -146,7 +147,7 @@ win32_cond_wait(win32_cond_t *cv,
       DispatchMessage(&msg);
     }
 
-    if ( PL_handle_signals() < 0 )
+    if ( Plx_handle_signals() < 0 )
     { EnterCriticalSection(external_mutex);
       return WAIT_INTR;
     }
@@ -171,7 +172,7 @@ win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 
 int
 rdlock(rwlock *lock)
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
 
   if ( lock->writer == self )
   { lock->lock_level++;			/* read nested in write */
@@ -214,7 +215,7 @@ rdlock(rwlock *lock)
 
 int
 wrlock(rwlock *lock, int allow_readers)
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
 
   if ( lock->writer == self )		/* recursive write lock, used for */
   { lock->lock_level++;			/* nested transactions */
@@ -308,7 +309,7 @@ reallow_readers(rwlock *lock)
 
 int
 unlock(rwlock *lock, int rd)
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
   int signal;
 
   if ( lock->writer == self && lock->lock_level > 1 )
@@ -423,7 +424,7 @@ destroy_lock(rwlock *lock)
 
 int
 rdlock(rwlock *lock)
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
 
   if ( lock->writer == self )
   { lock->lock_level++;			/* read nested in write */
@@ -449,7 +450,7 @@ rdlock(rwlock *lock)
   { int rc = pthread_cond_wait(&lock->rdcondvar, &lock->mutex);
 
     if ( rc == EINTR )
-    { if ( PL_handle_signals() < 0 )
+    { if ( Plx_handle_signals() < 0 )
       { lock->waiting_readers--;
 	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
@@ -477,7 +478,7 @@ WRUNLOCK(db)
 
 int
 wrlock(rwlock *lock, int allow_readers)
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
 
   if ( lock->writer == self )		/* recursive write lock, used for */
   { lock->lock_level++;			/* nested transactions */
@@ -514,7 +515,7 @@ wrlock(rwlock *lock, int allow_readers)
   { int rc = pthread_cond_wait(&lock->wrcondvar, &lock->mutex);
 
     if ( rc == EINTR )
-    { if ( PL_handle_signals() < 0 )
+    { if ( Plx_handle_signals() < 0 )
       { lock->waiting_writers--;
 	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
@@ -551,7 +552,7 @@ lockout_readers(rwlock *lock)
   { int rc = pthread_cond_wait(&lock->upcondvar, &lock->mutex);
 
     if ( rc == EINTR )
-    { if ( PL_handle_signals() < 0 )
+    { if ( Plx_handle_signals() < 0 )
       { lock->waiting_upgrade--;
 	pthread_mutex_unlock(&lock->mutex);
 	return FALSE;
@@ -579,7 +580,7 @@ reallow_readers(rwlock *lock)
 
 int
 unlock(rwlock *lock, int rd)		/* TRUE: read lock */
-{ int self = PL_thread_self();
+{ int self = Plx_thread_self();
   int signal;
 
   if ( lock->writer == self && lock->lock_level > 1 )

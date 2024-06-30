@@ -38,6 +38,8 @@
  */
 
 #include <config.h>
+#include <utility>
+#include <functional>
 #include "Index.h"
 
 
@@ -63,23 +65,23 @@
 class RTreePrologStream : public IDataStream
 {
 public:
-  qid_t q;
-  predicate_t p;
-  term_t cache0;
+  qid_t q; // TODO: PlQuery
+  predicate_t p; // TODO: PlPredicate
+  term_t cache0; // TODO: PlTermv
   bool cached;
   RTreeIndex *index;
 public:
   RTreePrologStream(term_t goal,RTreeIndex* i) {
-    cache0 = PL_new_term_refs(3);
-    p = PL_predicate("call",3,"system");
+    cache0 = Plx_new_term_refs(3);
+    p = Plx_predicate("call",3,"system");
     cached = false;
     Plx_put_term(cache0+0,goal);
-    q = PL_open_query(NULL, PL_Q_NORMAL, p, cache0);
+    q = Plx_open_query(NULL, PL_Q_NORMAL, p, cache0);
     index = i;
     index->bulkload_tmp_id_cnt = 0;
   }
   ~RTreePrologStream() {
-    PL_cut_query(q);
+    Plx_cut_query(q);
   }
   virtual IData* getNext() {
     RTree::Data* rv = NULL;
@@ -91,7 +93,7 @@ public:
       rv = NULL;
     } else {
       cached = false;
-      term_t shape_term = PL_new_term_ref();
+      term_t shape_term = Plx_new_term_ref();
       shape_term = (term_t)(cache0+2);
       IShape *s = index->interpret_shape(PlTerm(shape_term));
       Region r;
@@ -167,28 +169,21 @@ void RTreeIndex::clear_tree() {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  if (tree != NULL) {
-    delete tree;
-    tree = NULL;
-  }
-  if (buffer != NULL) {
-    delete buffer;
-    buffer = NULL;
-  }
-  if(storage_manager != NULL) {
-    delete storage_manager;
-    storage_manager = NULL;
-  }
+  delete tree;
+  tree = nullptr;
+  delete buffer;
+  buffer = nullptr;
+  delete storage_manager;
+  storage_manager = nullptr;
   uri_id_multimap.clear();
-  map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter;
-  for( id_shape_iter = id_shape_map.begin(); id_shape_iter != id_shape_map.end(); ++id_shape_iter ) {
-    GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter->second.first);
+  for( auto& id_shape_iter : id_shape_map ) {
+    GEOSShape *s = dynamic_cast<GEOSShape*>(id_shape_iter.second.first);
     if (s != NULL) {
       global_factory->destroyGeometry(s->g);
       s->g = NULL;
     }
-    delete id_shape_iter->second.first;
-    PL_erase(id_shape_iter->second.second);
+    delete id_shape_iter.second.first;
+    Plx_erase(id_shape_iter.second.second);
   }
   id_shape_map.clear();
   WRUNLOCK(&lock);
@@ -199,7 +194,7 @@ void RTreeIndex::storeShape(id_type id,IShape *s,PlTerm t) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return;
   }
-  id_shape_map[id] = pair<IShape*,record_t>(s,Plx_record(t.unwrap()));
+  id_shape_map[id] = make_pair(s,Plx_record(t.unwrap()));
   WRUNLOCK(&lock);
 }
 
@@ -209,7 +204,7 @@ IShape* RTreeIndex::getShape(id_type id) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return NULL;
   }
-  map<id_type,pair<IShape*,record_t> >::iterator iter = id_shape_map.find(id);
+  auto iter = id_shape_map.find(id);
   if (iter == id_shape_map.end()) {
     rv = NULL;
   } else {
@@ -225,7 +220,7 @@ void RTreeIndex::deleteShape(id_type id) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     return;
   }
-  map<id_type,pair<IShape*,record_t> >::iterator shape_iter = id_shape_map.find(id);
+  auto shape_iter = id_shape_map.find(id);
   if (shape_iter != id_shape_map.end()) {
     GEOSShape *s = dynamic_cast<GEOSShape*>(shape_iter->second.first);
     if (s != NULL) {
@@ -233,23 +228,23 @@ void RTreeIndex::deleteShape(id_type id) {
       s->g = NULL;
     }
     delete shape_iter->second.first;
-    PL_erase(shape_iter->second.second);
+    Plx_erase(shape_iter->second.second);
   }
   id_shape_map.erase(id);
   WRUNLOCK(&lock);
 }
 
-bool RTreeIndex::getShapeTerm(id_type id, term_t t) {
+bool RTreeIndex::getShapeTerm(id_type id, PlTerm t) {
   bool rv = false;
   if ( !RDLOCK(&lock) ) {
     cerr << __FUNCTION__ << " could not acquire read lock" << endl;
     rv = false;
   }
-  map<id_type,pair<IShape*,record_t> >::iterator iter = id_shape_map.find(id);
+  auto iter = id_shape_map.find(id);
   if (iter == id_shape_map.end()) {
     rv = false;
   } else {
-    rv = PL_recorded(iter->second.second,t);
+    rv = PL_recorded(iter->second.second,t.unwrap());
   }
   RDUNLOCK(&lock);
   return rv;
@@ -265,7 +260,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
   uri_atom.register_ref(); // FIXME: unregister somewhere...
   if (bulkload_tmp_id_cnt != -1) { // we're bulkloading
     id = bulkload_tmp_id_cnt++;
-    uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.unwrap(),id));
+    uri_id_multimap.insert(make_pair(uri_atom.unwrap(),id));
   } else {
     if (tree == NULL) {
       id = -1;
@@ -273,7 +268,7 @@ id_type  RTreeIndex::get_new_id(PlTerm uri) {
       IStatistics* stats;
       tree->getStatistics(&stats);
       id = stats->getNumberOfData();
-      uri_id_multimap.insert(pair<atom_t,id_type>(uri_atom.unwrap(),id));
+      uri_id_multimap.insert(make_pair(uri_atom.unwrap(),id));
       delete stats;
     }
   }
@@ -301,7 +296,7 @@ void RTreeIndex::create_tree(uint32_t dimensionality, double util, int nodesz) {
   if (storage == MEMORY) {
     storage_manager = StorageManager::createNewMemoryStorageManager();
   } else if (storage == DISK) {
-    string bns = bnt.as_string();  // TODO(peter): CVT_ALL|CVT_WRITEQ
+    string bns = bnt.as_string();
     storage_manager = StorageManager::createNewDiskStorageManager(bns, 32);
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
@@ -328,7 +323,7 @@ RTreeIndex::bulk_load(PlTerm goal,uint32_t dimensionality) {
   if (storage == MEMORY) {
     storage_manager = StorageManager::createNewMemoryStorageManager();
   } else if (storage == DISK) {
-    string bns = baseName.as_string(); // TODO(peter): CVT_ALL|CVT_WRITEQ
+    string bns = baseName.as_string();
     storage_manager = StorageManager::createNewDiskStorageManager(bns, 32);
   }
   buffer = StorageManager::createNewRandomEvictionsBuffer(*storage_manager, 4096, false);
@@ -375,7 +370,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       cout << "first argument not a list: linestring must have one argument, a list containing a list of points" << endl;
       return NULL;
     }
-    geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
+    auto cl = make_unique<geos::geom::CoordinateArraySequence>();
     PlTerm_tail list(shape_term[1]);
     PlTerm_var pt;
     while (list.next(pt)) {
@@ -394,10 +389,8 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
         cerr << dim << " dimensional points not supported" << endl;
       }
     }
-    geos::geom::LineString *ls = global_factory->createLineString(*cl);
+    unique_ptr<geos::geom::LineString> ls(global_factory->createLineString(*cl));
     GEOSLineString *linestring = new GEOSLineString(*ls);
-    delete ls;
-    delete cl;
     return linestring;
 
   } else if (shape_term.name() == ATOM_polygon) {
@@ -409,7 +402,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       cout << "first argument not a list: polygon must have one argument, a list containing a list of points representing the shell, and an second argument, a list containing lists of points representing the holes" << endl;
       return NULL;
     }
-    geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
+    auto cl = make_unique<geos::geom::CoordinateArraySequence>();
     PlTerm_tail linearrings(shape_term[1]);
     PlTerm_var ring;
     PlCheckFail(linearrings.next(ring)); // TODO(peter): throw exception?
@@ -460,10 +453,8 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       geos::geom::LinearRing *hlr = global_factory->createLinearRing(hcl);
       holes->push_back(hlr);
     }
-    geos::geom::Polygon *p = global_factory->createPolygon(lr,holes);
+    unique_ptr<geos::geom::Polygon> p(global_factory->createPolygon(lr,holes));
     GEOSPolygon *poly = new GEOSPolygon(*p);
-    delete p;
-    delete cl;
     return poly;
 
   } else if (shape_term.name() == ATOM_box) {
@@ -489,7 +480,7 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
 
     geos::geom::Polygon *box;
     if (dim == 2) {
-      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
+      auto cl = make_unique<geos::geom::CoordinateArraySequence>();
       cl->add(geos::geom::Coordinate(low_point[0], low_point[1]));
       cl->add(geos::geom::Coordinate(low_point[0], high_point[1]));
       cl->add(geos::geom::Coordinate(high_point[0], high_point[1]));
@@ -498,15 +489,13 @@ IShape* RTreeIndex::interpret_shape(PlTerm shape_term) {
       geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
-      delete cl;
     } else if (dim == 1) {
-      geos::geom::CoordinateArraySequence *cl = new geos::geom::CoordinateArraySequence();
+      auto cl = make_unique<geos::geom::CoordinateArraySequence>();
       cl->add(geos::geom::Coordinate(low_point[0], 0));
       cl->add(geos::geom::Coordinate(high_point[0], 0));
       geos::geom::LinearRing *lr = global_factory->createLinearRing(*cl);
       box = global_factory->createPolygon(lr, NULL);
       box->normalize();
-      delete cl;
     } else if (dim == 3) {
       cerr << "3d box regions not implemented yet" << endl;
       return NULL;
@@ -567,15 +556,15 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
     cerr << __FUNCTION__ << " could not acquire write lock" << endl;
     return FALSE;
   }
-  IteratorState *state = new IteratorState();
+  auto state = make_unique<IteratorState>();
   state->uri_id_range = uri_id_multimap.equal_range(uri.as_atom().unwrap());
   for ( state->uri_id_iter = state->uri_id_range.first;
         state->uri_id_iter != state->uri_id_range.second;
         ++(state->uri_id_iter)) {
     id_type id = state->uri_id_iter->second;
-    map<id_type,pair<IShape*,record_t> >::iterator id_shape_iter = id_shape_map.find(id);
+    auto id_shape_iter = id_shape_map.find(id);
     if (id_shape_iter != id_shape_map.end()) {
-      term_t t = PL_new_term_ref();
+      term_t t = Plx_new_term_ref();
       if (!PL_recorded(id_shape_iter->second.second,t)) {
         cerr << __FUNCTION__ << " couldn't resolve shape term record" << endl;
         return FALSE;
@@ -592,14 +581,12 @@ bool RTreeIndex::delete_single_object(PlTerm uri,PlTerm shape_term) {
           global_factory->destroyGeometry(s->g);
           s->g = NULL;
         }
-        delete shape;
-        PL_erase(id_shape_iter->second.second);
+        Plx_erase(id_shape_iter->second.second);
         id_shape_map.erase(id);
         break;
       }
     }
   }
-  delete state;
   WRUNLOCK(&lock);
   return rv;
 }
