@@ -4,29 +4,28 @@
 # buildenv.sh (on the fly)
 #
 
-SOBJ=	$(PACKSODIR)/space.$(SOEXT)
+SOBJ=	$(SWIPL_MODULE_DIR)/space.$(SWIPL_MODULE_EXT)
 LIBS=	@LIBS@
 CXX=	@CXX@
 LD=	@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
-CFLAGS+=-I. -std=c++17 -O2 -g  # -gdwarf-2 -g3
+SWIPL_CFLAGS+=-I. -std=c++17 -O2 -g  # -gdwarf-2 -g3
 
 all:	$(SOBJ)
 
-
 $(SOBJ): $(OBJ)
-	mkdir -p $(PACKSODIR)
-	$(LD) $(ARCH) $(LDSOFLAGS) -o $@ $(OBJ) $(LIBS) $(SWISOLIB)
+	mkdir -p $(SWIPL_MODULE_DIR)
+	$(SWIPL_LD) $(SWIPL_MODULE_LDFLAGS) -o $@ $(OBJ) $(LIBS) $(SWIPL_MODULE_LIB)
 
 .cc.o:
-	$(CXX) $(CPPFLAGS) $(COFLAGS) $(ARCH) $(CFLAGS) -c -o $@ $<
+	$(SWIPL_CXX) $(CPPFLAGS) $(COFLAGS) $(SWIPL_CFLAGS) -c -o $@ $<
 
 check::
 	$(SWIPL) -g test_space -t halt test/test_space.pl
 
 install::
 clean:
-	rm -f c/*.o *~ Makefile
+	$(RM) c/*.o *~ Makefile
 distclean: clean
-	rm -f $(SOBJ)
+	$(RM) $(SOBJ)
