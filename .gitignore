@@ -1,6 +1,7 @@
 Makefile
 autom4te.cache
 buildenv.sh
+status.db
 *.o
 config.status
 configure

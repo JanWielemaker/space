@@ -8,4 +8,6 @@ maintainer( 'Jan Wielemaker', 'J.Wielemaker@vu.nl' ).
 home( 'https://github.com/JanWielemaker/space.git' ).
 download( 'https://github.com/JanWielemaker/space/archive/V*.zip' ).
 pack_version(2).
-% prolog_version('9.3.8').
+% requires(prolog >= "9.3.8"). % TODO: stable version
+requires(prolog:c_cxx(_)).
+

@@ -6,26 +6,34 @@
 
 SOBJ=	$(SWIPL_MODULE_DIR)/space.$(SWIPL_MODULE_EXT)
 LIBS=	@LIBS@
-CXX=	@CXX@
-LD=	@CXX@
+CXX?=	@CXX@
+LD?=	@CXX@
 OBJ=    c/space.o c/globals.o c/Index.o c/Search.o \
         c/Shapes.o c/lock.o c/debug.o
-SWIPL_CFLAGS+=-I. -std=c++17 -O2 -g  # -gdwarf-2 -g3
+SWIPL_CFLAGS+=-I. -std=c++17 -O2 -g # -gdwarf-2 -g3
+CXX?=$(SWIPL_CXX)
+LD?=$(SWIPL_CXX)
+
+# The following should be set by buildenv.sh:
+SWIPL?=swipl
 
 all:	$(SOBJ)
 
 $(SOBJ): $(OBJ)
 	mkdir -p $(SWIPL_MODULE_DIR)
-	$(SWIPL_LD) $(SWIPL_MODULE_LDFLAGS) -o $@ $(OBJ) $(LIBS) $(SWIPL_MODULE_LIB)
+	$(CXX) $(SWIPL_MODULE_LDFLAGS) -o $@ $(OBJ) $(LIBS) $(SWIPL_MODULE_LIB)
 
 .cc.o:
-	$(SWIPL_CXX) $(CPPFLAGS) $(COFLAGS) $(SWIPL_CFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(COFLAGS) $(SWIPL_CFLAGS) -c -o $@ $<
 
 check::
 	$(SWIPL) -g test_space -t halt test/test_space.pl
 
 install::
 clean:
-	$(RM) c/*.o *~ Makefile
+	$(RM) c/*.o *~ Makefile # TODO: status.db buildenv.sh
+	$(RM) -r autom4te.cache config.h config.h.in config.log config.status configure lib
+
 distclean: clean
 	$(RM) $(SOBJ)
+	@# git clean -dxf
