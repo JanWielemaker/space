@@ -12,6 +12,11 @@ sources.
   - libgeos
   - libspatialindex
 
-On recent Debian versions (_bullseye_) these may be installed using
+On recent Debian versions (_bullseye_ or _bookworm_) these may be installed using
 
-    apt-get install libspatialindex-dev libgeos-dev libgeos++-dev libserd-dev
+    apt install libspatialindex-dev libgeos-dev libgeos++-dev libserd-dev
+
+The pack has been built and tested with libgeos++-dev 3.11.1 and might
+not work with other releases (the C++ interface is documented as being
+"unstable"). The symptom of incompatibility is that the pack install
+fails with C++ compilation errors.

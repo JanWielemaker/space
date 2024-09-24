@@ -57,6 +57,7 @@
 #define INIT_LOCK(lock)			init_lock(lock)
 
 
+// TODO: use SWI-cpp2-atommap.h
 map<atom_t,Index*> index_map;
 rwlock index_map_lock;
 
